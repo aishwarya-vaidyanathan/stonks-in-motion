@@ -1,4 +1,4 @@
-"""FastAPI app: serves the dashboard and (in V1d) controls the producer/consumer."""
+"""FastAPI app: serves the dashboard and supervises the producer/consumer."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ from fastapi.templating import Jinja2Templates
 
 from .config import get_settings
 from .logging_config import get_logger, setup_logging
+from .process_manager import ProcessManager
+from .routes import router as control_router
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
@@ -25,6 +27,8 @@ log = get_logger(__name__)
 async def lifespan(app: FastAPI):
     settings = get_settings()
     setup_logging(level=settings.log_level, component="web")
+    app.state.settings = settings
+    app.state.process_manager = ProcessManager(settings)
     log.info(
         "app.startup",
         host=settings.app_host,
@@ -32,8 +36,12 @@ async def lifespan(app: FastAPI):
         tickers=settings.finnhub_tickers,
         topic=settings.kafka_topic,
     )
-    yield
-    log.info("app.shutdown")
+    try:
+        yield
+    finally:
+        log.info("app.shutdown.cleaning_up")
+        app.state.process_manager.stop_all()
+        log.info("app.shutdown")
 
 
 app = FastAPI(
@@ -44,6 +52,7 @@ app = FastAPI(
 )
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.include_router(control_router)
 
 
 @app.get("/healthz", tags=["meta"])
@@ -54,7 +63,7 @@ def healthz() -> dict[str, bool]:
 
 @app.get("/", response_class=HTMLResponse, tags=["ui"])
 def index(request: Request) -> HTMLResponse:
-    """Dashboard with Start / Stop controls (wired in V1d)."""
+    """Dashboard with Start / Stop controls and live status + log tail."""
     return templates.TemplateResponse(
         request,
         "index.html",

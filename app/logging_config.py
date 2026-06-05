@@ -4,6 +4,7 @@ Every component (web / producer / consumer) calls `setup_logging(component=...)`
 once at startup. The bound `component` context var shows up in every log line,
 which makes journald / log shipping / grepping much easier in production.
 """
+
 from __future__ import annotations
 
 import logging

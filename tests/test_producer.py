@@ -1,4 +1,5 @@
 """Tests for the producer module."""
+
 from __future__ import annotations
 
 import asyncio
@@ -21,8 +22,14 @@ from app.producer.kafka_sink import KafkaSink
 
 def test_transform_quote_maps_fields():
     raw = {
-        "c": 261.74, "d": -1.31, "dp": -0.4985, "h": 264.26,
-        "l": 260.68, "o": 263.20, "pc": 263.05, "t": 1763140800,
+        "c": 261.74,
+        "d": -1.31,
+        "dp": -0.4985,
+        "h": 264.26,
+        "l": 260.68,
+        "o": 263.20,
+        "pc": 263.05,
+        "t": 1763140800,
     }
     out = transform_quote("AAPL", raw)
     assert out["symbol"] == "AAPL"
@@ -71,14 +78,31 @@ def _make_settings(**overrides):
 
 def _handler(status: int, body: dict | str = ""):
     def _h(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(status, json=body) if isinstance(body, dict) else httpx.Response(status, text=body)
+        return (
+            httpx.Response(status, json=body)
+            if isinstance(body, dict)
+            else httpx.Response(status, text=body)
+        )
+
     return _h
 
 
 @pytest.mark.asyncio
 async def test_finnhub_client_returns_transformed_quote():
     transport = httpx.MockTransport(
-        _handler(200, {"c": 1.0, "d": 0.1, "dp": 10.0, "h": 2.0, "l": 0.5, "o": 0.9, "pc": 0.9, "t": 1700000000})
+        _handler(
+            200,
+            {
+                "c": 1.0,
+                "d": 0.1,
+                "dp": 10.0,
+                "h": 2.0,
+                "l": 0.5,
+                "o": 0.9,
+                "pc": 0.9,
+                "t": 1700000000,
+            },
+        )
     )
     async with FinnhubClient(
         base_url="https://finnhub.io/api/v1",
@@ -95,11 +119,22 @@ async def test_finnhub_client_returns_transformed_quote():
 @pytest.mark.asyncio
 async def test_finnhub_client_retries_on_429_then_succeeds():
     statuses = iter([429, 429, 200])
-    bodies = iter([
-        {},
-        {},
-        {"c": 1.0, "d": 0.1, "dp": 10.0, "h": 2.0, "l": 0.5, "o": 0.9, "pc": 0.9, "t": 1700000000},
-    ])
+    bodies = iter(
+        [
+            {},
+            {},
+            {
+                "c": 1.0,
+                "d": 0.1,
+                "dp": 10.0,
+                "h": 2.0,
+                "l": 0.5,
+                "o": 0.9,
+                "pc": 0.9,
+                "t": 1700000000,
+            },
+        ]
+    )
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(next(statuses), json=next(bodies))
@@ -177,17 +212,28 @@ async def test_run_loop_processes_all_tickers_then_stops(monkeypatch):
     produced = []
 
     class FakeClient:
-        def __init__(self, **kwargs): pass
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): pass
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            pass
+
         async def fetch_quote(self, symbol):
             fetched.append(symbol)
             return {"symbol": symbol, "ts": "t", "current": 1.0}
 
     class FakeSink:
-        def __init__(self, *a, **kw): pass
-        def produce(self, p): produced.append(p)
-        def flush(self, t): return 0
+        def __init__(self, *a, **kw):
+            pass
+
+        def produce(self, p):
+            produced.append(p)
+
+        def flush(self, t):
+            return 0
 
     monkeypatch.setattr("app.producer.__main__.FinnhubClient", FakeClient)
     monkeypatch.setattr("app.producer.__main__.KafkaSink", FakeSink)

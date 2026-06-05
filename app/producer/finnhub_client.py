@@ -4,6 +4,7 @@ Wraps `httpx.AsyncClient` for the free `/quote` endpoint and translates
 Finnhub's terse response into our wire schema. The client is meant to be
 used as an async context manager so its connection pool is closed cleanly.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -62,7 +63,7 @@ class FinnhubClient:
             try:
                 resp = await self._client.get(url, params=params)
                 if resp.status_code == 429:
-                    wait = 2 ** attempt
+                    wait = 2**attempt
                     log.warning(
                         "finnhub.rate_limited",
                         symbol=symbol,
@@ -75,7 +76,7 @@ class FinnhubClient:
                 return transform_quote(symbol, resp.json())
             except httpx.HTTPError as exc:
                 last_exc = exc
-                wait = 2 ** attempt
+                wait = 2**attempt
                 log.warning(
                     "finnhub.request_failed",
                     symbol=symbol,

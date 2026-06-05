@@ -1,5 +1,6 @@
 """End-to-end smoke test: the FastAPI app boots, serves the dashboard,
 and the static asset is reachable."""
+
 from __future__ import annotations
 
 from fastapi.testclient import TestClient

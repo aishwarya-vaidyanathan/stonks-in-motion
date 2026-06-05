@@ -4,6 +4,7 @@ Centralises the broker / SASL config so the rest of the producer doesn't
 have to know how we talk to Aiven. Uses idempotent producer semantics
 (`acks=all` + `enable.idempotence=true`) to avoid duplicate messages on retry.
 """
+
 from __future__ import annotations
 
 import json

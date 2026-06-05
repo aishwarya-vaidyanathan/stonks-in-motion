@@ -4,6 +4,7 @@ A single flat `Settings` model keeps the env-var surface area easy to scan
 (see `.env.example` for the contract). The app obtains settings via FastAPI's
 dependency injection (`Depends(get_settings)`) so tests can override cleanly.
 """
+
 from __future__ import annotations
 
 import json

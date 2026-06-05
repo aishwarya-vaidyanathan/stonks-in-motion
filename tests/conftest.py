@@ -1,5 +1,6 @@
 """Test configuration: ensure required env vars are set before app import
 and that the cached settings singleton is reset between tests."""
+
 from __future__ import annotations
 
 import os

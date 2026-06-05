@@ -1,4 +1,5 @@
 """Producer entry point: poll Finnhub, push to Kafka, shut down cleanly on SIGTERM."""
+
 from __future__ import annotations
 
 import asyncio

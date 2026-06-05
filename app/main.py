@@ -1,4 +1,5 @@
 """FastAPI app: serves the dashboard and (in V1d) controls the producer/consumer."""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager

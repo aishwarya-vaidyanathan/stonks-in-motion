@@ -118,19 +118,32 @@ def test_kafka_source_subscribes_and_polls():
         ConsumerCls.return_value.close.assert_called_once()
 
 
-def test_kafka_source_passes_ssl_ca_location_when_set():
-    settings = _make_settings(kafka_ssl_ca_location="/etc/ssl/aiven-ca.pem")
+def test_kafka_source_passes_ssl_ca_location_when_set(tmp_path):
+    cert = tmp_path / "ca.pem"
+    cert.write_text("-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n")
+    settings = _make_settings(kafka_ssl_ca_location=str(cert))
     with patch("app.consumer.kafka_source.Consumer") as ConsumerCls:
         from app.consumer.kafka_source import KafkaSource
 
         KafkaSource(settings)
         cfg = ConsumerCls.call_args[0][0]
-    assert cfg["ssl.ca.location"] == "/etc/ssl/aiven-ca.pem"
+    assert cfg["ssl.ca.location"] == str(cert)
 
 
 def test_kafka_source_omits_ssl_ca_location_when_unset():
     settings = _make_settings()
     assert settings.kafka_ssl_ca_location is None
+    with patch("app.consumer.kafka_source.Consumer") as ConsumerCls:
+        from app.consumer.kafka_source import KafkaSource
+
+        KafkaSource(settings)
+        cfg = ConsumerCls.call_args[0][0]
+    assert "ssl.ca.location" not in cfg
+
+
+def test_kafka_source_omits_ssl_ca_location_when_file_missing(tmp_path):
+    missing = tmp_path / "does-not-exist.pem"
+    settings = _make_settings(kafka_ssl_ca_location=str(missing))
     with patch("app.consumer.kafka_source.Consumer") as ConsumerCls:
         from app.consumer.kafka_source import KafkaSource
 

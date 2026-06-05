@@ -9,6 +9,7 @@ producer first if you want to see messages from boot.
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 from confluent_kafka import Consumer, KafkaError
@@ -37,8 +38,12 @@ class KafkaSource:
             "auto.offset.reset": "latest",
             "enable.auto.commit": True,
         }
-        if settings.kafka_ssl_ca_location:
-            consumer_config["ssl.ca.location"] = settings.kafka_ssl_ca_location
+        # Only pin a CA bundle if the file actually exists. When the user
+        # hasn't shipped a cert, fall through to librdkafka's system trust
+        # store (Aiven's Let's Encrypt chain is in Ubuntu's ca-certificates).
+        ca_path = settings.kafka_ssl_ca_location
+        if ca_path and os.path.isfile(ca_path):
+            consumer_config["ssl.ca.location"] = ca_path
         self._consumer = Consumer(consumer_config)
 
     def subscribe(self) -> None:

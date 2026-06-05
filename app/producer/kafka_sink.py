@@ -8,6 +8,7 @@ have to know how we talk to Aiven. Uses idempotent producer semantics
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 from confluent_kafka import KafkaException, Producer
@@ -41,8 +42,12 @@ class KafkaSink:
             "compression.type": "lz4",
             "retries": 5,
         }
-        if settings.kafka_ssl_ca_location:
-            producer_config["ssl.ca.location"] = settings.kafka_ssl_ca_location
+        # Only pin a CA bundle if the file actually exists. When the user
+        # hasn't shipped a cert, fall through to librdkafka's system trust
+        # store (Aiven's Let's Encrypt chain is in Ubuntu's ca-certificates).
+        ca_path = settings.kafka_ssl_ca_location
+        if ca_path and os.path.isfile(ca_path):
+            producer_config["ssl.ca.location"] = ca_path
         self._producer = Producer(producer_config)
 
     def produce(self, payload: dict[str, Any]) -> None:

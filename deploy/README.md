@@ -21,8 +21,9 @@ fresh Ubuntu Hetzner Cloud server, with CI/CD handled by GitHub Actions.
 
 3. **Bootstrap the server** (run as root over SSH):
    ```bash
-   scp deploy_key.pub deploy/bootstrap.sh root@<server-ip>:/tmp/
-   ssh root@<server-ip> "bash /tmp/bootstrap.sh /tmp/deploy_key.pub"
+   scp -r deploy root@<server-ip>:/tmp/
+   scp deploy_key.pub root@<server-ip>:/tmp/
+   ssh root@<server-ip> "bash /tmp/deploy/bootstrap.sh /tmp/deploy_key.pub"
    ```
    This:
    - Installs `python3`, `python3-venv`, `python3-pip`

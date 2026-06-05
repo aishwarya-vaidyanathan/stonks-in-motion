@@ -2,7 +2,8 @@
 # First-time setup for a fresh Ubuntu 24.04 / 26.04 Hetzner Cloud server.
 # Run as root (or with sudo) once, immediately after the server is created.
 #
-# Usage:
+# Usage (from the repo root, after copying the deploy/ directory to the
+# server -- see deploy/README.md):
 #   sudo bash deploy/bootstrap.sh [path/to/deploy_key.pub]
 #
 # If a public key path is provided, its contents are appended to the
@@ -11,10 +12,23 @@
 # without sharing the root key.
 set -euo pipefail
 
+# Resolve this script's own directory so we can find the systemd unit
+# file regardless of the caller's CWD (e.g. when run from /tmp/).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UNIT_SRC="$SCRIPT_DIR/stonks-in-motion.service"
+
 PUBKEY_PATH="${1:-}"
 
 if [[ $EUID -ne 0 ]]; then
   echo "Must be run as root (or via sudo)." >&2
+  exit 1
+fi
+
+if [[ ! -f "$UNIT_SRC" ]]; then
+  echo "Cannot find $UNIT_SRC" >&2
+  echo "Make sure the entire deploy/ directory was copied to the server" >&2
+  echo "(e.g. 'scp -r deploy root@<ip>:/tmp/') and you're running this" >&2
+  echo "script from inside it." >&2
   exit 1
 fi
 
@@ -71,7 +85,7 @@ else
 fi
 
 echo "==> Installing systemd unit"
-install -m 644 deploy/stonks-in-motion.service /etc/systemd/system/stonks-in-motion.service
+install -m 644 "$UNIT_SRC" /etc/systemd/system/stonks-in-motion.service
 systemctl daemon-reload
 systemctl enable stonks-in-motion.service
 

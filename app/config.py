@@ -31,8 +31,11 @@ class Settings(BaseSettings):
     finnhub_tickers: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["AAPL", "MSFT", "GOOG", "AMZN", "NVDA", "TSLA"]
     )
-    finnhub_poll_interval_seconds: float = 5.0
+    # Default of 10s keeps 6 tickers at ~36 req/min, well within Finnhub's
+    # 60 req/min free-tier limit. Bump this if you have fewer tickers.
+    finnhub_poll_interval_seconds: float = 10.0
     finnhub_request_timeout_seconds: float = 10.0
+    finnhub_max_retries: int = 3
 
     # ---- Kafka (Aiven) ----
     kafka_bootstrap_servers: str

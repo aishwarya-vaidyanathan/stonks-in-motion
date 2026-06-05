@@ -30,14 +30,18 @@ class KafkaSource:
         consumer_config: dict[str, Any] = {
             "bootstrap.servers": settings.kafka_bootstrap_servers,
             "security.protocol": settings.kafka_security_protocol,
-            "sasl.mechanism": settings.kafka_sasl_mechanism,
-            "sasl.username": settings.kafka_sasl_username,
-            "sasl.password": settings.kafka_sasl_password,
             "group.id": f"{settings.kafka_client_id}-consumer",
             "client.id": f"{settings.kafka_client_id}-consumer",
             "auto.offset.reset": "latest",
             "enable.auto.commit": True,
         }
+        # Only attach SASL credentials when the security protocol actually
+        # uses SASL — librdkafka will reject SASL_SSL handshakes if the
+        # broker is configured mTLS-only.
+        if settings.kafka_security_protocol.startswith("SASL_"):
+            consumer_config["sasl.mechanism"] = settings.kafka_sasl_mechanism
+            consumer_config["sasl.username"] = settings.kafka_sasl_username
+            consumer_config["sasl.password"] = settings.kafka_sasl_password
         # Only pin a CA bundle if the file actually exists. When the user
         # hasn't shipped a cert, fall through to librdkafka's system trust
         # store (Aiven's Let's Encrypt chain is in Ubuntu's ca-certificates).

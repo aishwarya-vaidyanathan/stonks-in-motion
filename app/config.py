@@ -40,10 +40,17 @@ class Settings(BaseSettings):
 
     # ---- Kafka (Aiven) ----
     kafka_bootstrap_servers: str
-    kafka_security_protocol: str = "SASL_SSL"
+    # "SSL" (mTLS), "SASL_SSL" (username/password), "PLAINTEXT", or "SASL_PLAINTEXT".
+    # Default is SSL — Aiven ships every Kafka service with mTLS access certs,
+    # and many services are configured mTLS-only (broker sends "certificate
+    # required" alerts during the SASL handshake). Use SASL_SSL when the
+    # service has username/password auth instead.
+    kafka_security_protocol: str = "SSL"
     kafka_sasl_mechanism: str = "PLAIN"
-    kafka_sasl_username: str
-    kafka_sasl_password: str
+    # SASL is optional; required only when kafka_security_protocol starts
+    # with "SASL_". Both fields are ignored for plain SSL/PLAINTEXT.
+    kafka_sasl_username: str | None = None
+    kafka_sasl_password: str | None = None
     kafka_topic: str = "stonks.raw.quotes"
     kafka_client_id: str = "stonks-in-motion"
     kafka_transport: str = "native"  # "native" | "rest"
@@ -53,9 +60,9 @@ class Settings(BaseSettings):
     # (its broker cert chains to Let's Encrypt, included in `ca-certificates`).
     kafka_ssl_ca_location: str | None = None
     # Optional mTLS client certificate + key. Aiven Kafka ships with mTLS
-    # access certs by default; the broker rejects SASL_SSL handshakes with
-    # "certificate required" if these aren't provided. Both must be set (or
-    # both omitted) for mTLS to engage.
+    # access certs by default; for mTLS-only services these are the only
+    # way to authenticate. Both must point to existing files (or both be
+    # unset) for mTLS to engage.
     kafka_ssl_certificate_location: str | None = None
     kafka_ssl_key_location: str | None = None
 
@@ -85,6 +92,27 @@ class Settings(BaseSettings):
         if v not in allowed:
             raise ValueError(f"kafka_transport must be one of {allowed}, got {value!r}")
         return v
+
+    @field_validator("kafka_security_protocol")
+    @classmethod
+    def _check_security_protocol(cls, value: str) -> str:
+        allowed = {"PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"}
+        v = value.upper()
+        if v not in allowed:
+            raise ValueError(f"kafka_security_protocol must be one of {allowed}, got {value!r}")
+        return v
+
+    @field_validator("kafka_sasl_username", "kafka_sasl_password", mode="after")
+    @classmethod
+    def _require_sasl_when_sasl_protocol(cls, value: str | None, info) -> str | None:
+        # Filled in by the model_validate pipeline; we re-read the protocol
+        # from info.data to know which sibling field to validate against.
+        protocol = (info.data or {}).get("kafka_security_protocol", "")
+        if protocol.startswith("SASL_") and not value:
+            raise ValueError(
+                f"{info.field_name} is required when kafka_security_protocol={protocol!r}"
+            )
+        return value
 
 
 @lru_cache(maxsize=1)

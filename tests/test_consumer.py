@@ -186,6 +186,46 @@ def test_kafka_source_skips_mtls_when_only_cert_present(tmp_path):
     assert "ssl.key.location" not in cfg
 
 
+def test_kafka_source_omits_sasl_when_protocol_is_ssl():
+    settings = _make_settings(
+        kafka_security_protocol="SSL",
+        kafka_sasl_username=None,
+        kafka_sasl_password=None,
+    )
+    with patch("app.consumer.kafka_source.Consumer") as ConsumerCls:
+        from app.consumer.kafka_source import KafkaSource
+
+        KafkaSource(settings)
+        cfg = ConsumerCls.call_args[0][0]
+    assert cfg["security.protocol"] == "SSL"
+    assert "sasl.mechanism" not in cfg
+    assert "sasl.username" not in cfg
+    assert "sasl.password" not in cfg
+
+
+def test_kafka_source_ssl_with_mtls_attaches_cert_and_key(tmp_path):
+    cert = tmp_path / "client.crt"
+    cert.write_text("-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n")
+    key = tmp_path / "client.key"
+    key.write_text("-----BEGIN PRIVATE KEY-----\nstub\n-----END PRIVATE KEY-----\n")
+    settings = _make_settings(
+        kafka_security_protocol="SSL",
+        kafka_sasl_username=None,
+        kafka_sasl_password=None,
+        kafka_ssl_certificate_location=str(cert),
+        kafka_ssl_key_location=str(key),
+    )
+    with patch("app.consumer.kafka_source.Consumer") as ConsumerCls:
+        from app.consumer.kafka_source import KafkaSource
+
+        KafkaSource(settings)
+        cfg = ConsumerCls.call_args[0][0]
+    assert cfg["security.protocol"] == "SSL"
+    assert "sasl.mechanism" not in cfg
+    assert cfg["ssl.certificate.location"] == str(cert)
+    assert cfg["ssl.key.location"] == str(key)
+
+
 # ---------------------------------------------------------------------------
 # consume_loop (end-to-end with mocked source)
 # ---------------------------------------------------------------------------

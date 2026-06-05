@@ -7,10 +7,11 @@ import os
 
 # Set minimum required env vars before any `app.*` import. The autouse fixture
 # below clears the cached Settings so per-test overrides take effect.
+# Default is SSL (mTLS), matching the app's new default. Tests that exercise
+# SASL_SSL override the security protocol + add username/password explicitly.
 os.environ.setdefault("FINNHUB_API_KEY", "test-key")
 os.environ.setdefault("KAFKA_BOOTSTRAP_SERVERS", "test-broker:1234")
-os.environ.setdefault("KAFKA_SASL_USERNAME", "user")
-os.environ.setdefault("KAFKA_SASL_PASSWORD", "pass")
+os.environ.setdefault("KAFKA_SECURITY_PROTOCOL", "SSL")
 
 import pytest
 

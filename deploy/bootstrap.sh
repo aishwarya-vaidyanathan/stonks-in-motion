@@ -56,6 +56,9 @@ cat > "$SUDOERS_FILE" <<'EOF'
 stonks ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart stonks-in-motion
 stonks ALL=(ALL) NOPASSWD: /usr/bin/systemctl status stonks-in-motion
 stonks ALL=(ALL) NOPASSWD: /usr/bin/systemctl is-active stonks-in-motion
+stonks ALL=(ALL) NOPASSWD: /usr/bin/systemctl daemon-reload
+# Allows the deploy workflow to reinstall the unit when it changes.
+stonks ALL=(ALL) NOPASSWD: /usr/bin/install -m 644 /opt/stonks-in-motion/deploy/stonks-in-motion.service /etc/systemd/system/stonks-in-motion.service
 stonks ALL=(ALL) NOPASSWD: /usr/bin/journalctl -u stonks-in-motion *
 EOF
 chmod 440 "$SUDOERS_FILE"

@@ -9,7 +9,7 @@ User=stonks
 Group=stonks
 WorkingDirectory=/opt/stonks-in-motion
 EnvironmentFile=/opt/stonks-in-motion/.env
-ExecStart=/opt/stonks-in-motion/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
+ExecStart=/opt/stonks-in-motion/.venv/bin/uvicorn app.main:app --host ${APP_HOST} --port ${APP_PORT} --workers 1
 Restart=on-failure
 RestartSec=5
 # Kill only the main process; the lifespan's stop_all() handler cleans up
@@ -23,7 +23,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/stonks-in-motion/logs
+ReadWritePaths=/opt/stonks-in-motion/logs /opt/stonks-in-motion/certs
 # Treat warnings about this unit as errors.
 # (Optional) Limit file descriptors / memory if desired:
 # LimitNOFILE=65536

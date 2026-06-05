@@ -112,6 +112,33 @@ jobs:
             .venv/bin/pip install --quiet --upgrade pip
             .venv/bin/pip install --quiet -r requirements.txt
 
+      - name: Reinstall systemd unit if changed
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            LOCAL="/opt/stonks-in-motion/deploy/stonks-in-motion.service"
+            REMOTE="/etc/systemd/system/stonks-in-motion.service"
+            if cmp -s "$LOCAL" "$REMOTE"; then
+              echo "Unit unchanged, skipping reinstall"
+              exit 0
+            fi
+            echo "Unit changed; reinstalling"
+            # `sudo -n` so we fail fast (no password prompt). Requires the
+            # matching NOPASSWD rules installed by deploy/bootstrap.sh.
+            if ! sudo -n install -m 644 "$LOCAL" "$REMOTE" 2>/dev/null; then
+              echo "::warning::sudo install failed; run deploy/bootstrap.sh as root to refresh sudoers"
+              exit 0
+            fi
+            if ! sudo -n systemctl daemon-reload 2>/dev/null; then
+              echo "::warning::sudo systemctl daemon-reload failed; run deploy/bootstrap.sh as root to refresh sudoers"
+              exit 0
+            fi
+            echo "Unit reinstalled and daemon reloaded"
+
       - name: Restart service and wait for healthy
         uses: appleboy/ssh-action@master
         with:

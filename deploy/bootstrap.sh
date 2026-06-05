@@ -62,7 +62,7 @@ chmod 440 "$SUDOERS_FILE"
 visudo -c -f "$SUDOERS_FILE"
 
 echo "==> Preparing $APP_DIR"
-mkdir -p "$APP_DIR/logs"
+mkdir -p "$APP_DIR/logs" "$APP_DIR/certs"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 chmod 750 "$APP_DIR"
 

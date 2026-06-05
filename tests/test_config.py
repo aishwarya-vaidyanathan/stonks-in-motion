@@ -51,3 +51,14 @@ def test_settings_missing_required_kafka_servers(monkeypatch):
     monkeypatch.delenv("KAFKA_BOOTSTRAP_SERVERS", raising=False)
     with pytest.raises(ValidationError):
         Settings()
+
+
+def test_settings_kafka_ssl_ca_location_defaults_to_none():
+    s = Settings()
+    assert s.kafka_ssl_ca_location is None
+
+
+def test_settings_kafka_ssl_ca_location_loads_from_env(monkeypatch):
+    monkeypatch.setenv("KAFKA_SSL_CA_LOCATION", "/opt/secrets/ca.pem")
+    s = Settings()
+    assert s.kafka_ssl_ca_location == "/opt/secrets/ca.pem"

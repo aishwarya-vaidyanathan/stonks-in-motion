@@ -26,19 +26,20 @@ class KafkaSource:
                 "use KAFKA_TRANSPORT=native."
             )
         self._topic = settings.kafka_topic
-        self._consumer = Consumer(
-            {
-                "bootstrap.servers": settings.kafka_bootstrap_servers,
-                "security.protocol": settings.kafka_security_protocol,
-                "sasl.mechanism": settings.kafka_sasl_mechanism,
-                "sasl.username": settings.kafka_sasl_username,
-                "sasl.password": settings.kafka_sasl_password,
-                "group.id": f"{settings.kafka_client_id}-consumer",
-                "client.id": f"{settings.kafka_client_id}-consumer",
-                "auto.offset.reset": "latest",
-                "enable.auto.commit": True,
-            }
-        )
+        consumer_config: dict[str, Any] = {
+            "bootstrap.servers": settings.kafka_bootstrap_servers,
+            "security.protocol": settings.kafka_security_protocol,
+            "sasl.mechanism": settings.kafka_sasl_mechanism,
+            "sasl.username": settings.kafka_sasl_username,
+            "sasl.password": settings.kafka_sasl_password,
+            "group.id": f"{settings.kafka_client_id}-consumer",
+            "client.id": f"{settings.kafka_client_id}-consumer",
+            "auto.offset.reset": "latest",
+            "enable.auto.commit": True,
+        }
+        if settings.kafka_ssl_ca_location:
+            consumer_config["ssl.ca.location"] = settings.kafka_ssl_ca_location
+        self._consumer = Consumer(consumer_config)
 
     def subscribe(self) -> None:
         self._consumer.subscribe([self._topic])

@@ -22,7 +22,7 @@ A small but production-shaped streaming pipeline:
             |        └─ consumer (subprocess)         |
             |              Aiven Kafka -> JSON log    |
             +-------------------^---------------------+
-                                |   HTTP (127.0.0.1:8000)
+                                |   HTTP (0.0.0.0:8000, public)
                                 |
                           Browser UI
 ```

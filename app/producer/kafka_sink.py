@@ -28,21 +28,22 @@ class KafkaSink:
                 "use KAFKA_TRANSPORT=native."
             )
         self._topic = settings.kafka_topic
-        self._producer = Producer(
-            {
-                "bootstrap.servers": settings.kafka_bootstrap_servers,
-                "security.protocol": settings.kafka_security_protocol,
-                "sasl.mechanism": settings.kafka_sasl_mechanism,
-                "sasl.username": settings.kafka_sasl_username,
-                "sasl.password": settings.kafka_sasl_password,
-                "client.id": f"{settings.kafka_client_id}-producer",
-                "acks": "all",
-                "enable.idempotence": True,
-                "linger.ms": 20,
-                "compression.type": "lz4",
-                "retries": 5,
-            }
-        )
+        producer_config: dict[str, Any] = {
+            "bootstrap.servers": settings.kafka_bootstrap_servers,
+            "security.protocol": settings.kafka_security_protocol,
+            "sasl.mechanism": settings.kafka_sasl_mechanism,
+            "sasl.username": settings.kafka_sasl_username,
+            "sasl.password": settings.kafka_sasl_password,
+            "client.id": f"{settings.kafka_client_id}-producer",
+            "acks": "all",
+            "enable.idempotence": True,
+            "linger.ms": 20,
+            "compression.type": "lz4",
+            "retries": 5,
+        }
+        if settings.kafka_ssl_ca_location:
+            producer_config["ssl.ca.location"] = settings.kafka_ssl_ca_location
+        self._producer = Producer(producer_config)
 
     def produce(self, payload: dict[str, Any]) -> None:
         """Enqueue one JSON message, keyed by symbol (per-symbol ordering)."""

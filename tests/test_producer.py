@@ -198,6 +198,23 @@ def test_kafka_sink_rejects_rest_transport():
         KafkaSink(settings)
 
 
+def test_kafka_sink_passes_ssl_ca_location_when_set():
+    settings = _make_settings(kafka_ssl_ca_location="/etc/ssl/aiven-ca.pem")
+    with patch("app.producer.kafka_sink.Producer") as ProducerCls:
+        KafkaSink(settings)
+        cfg = ProducerCls.call_args[0][0]
+    assert cfg["ssl.ca.location"] == "/etc/ssl/aiven-ca.pem"
+
+
+def test_kafka_sink_omits_ssl_ca_location_when_unset():
+    settings = _make_settings()
+    assert settings.kafka_ssl_ca_location is None
+    with patch("app.producer.kafka_sink.Producer") as ProducerCls:
+        KafkaSink(settings)
+        cfg = ProducerCls.call_args[0][0]
+    assert "ssl.ca.location" not in cfg
+
+
 # ---------------------------------------------------------------------------
 # Producer run loop
 # ---------------------------------------------------------------------------

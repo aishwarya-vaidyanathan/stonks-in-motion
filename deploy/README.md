@@ -50,13 +50,24 @@ repo. Use **Repository secrets** (not environment):
 | `AIVEN_KAFKA_USERNAME` | From the Aiven console |
 | `AIVEN_KAFKA_PASSWORD` | From the Aiven console |
 | `AIVEN_KAFKA_TOPIC` | `stonks.raw.quotes` (or whatever you create) |
+| `AIVEN_CA_CERT` | *Optional.* Contents of the CA cert from the Aiven console. Leave empty to use the system trust store (works for Aiven's Let's Encrypt chain). |
 
 ## Aiven Kafka
 
-In the Aiven console, **create the topic** before the first deploy
-(default name `stonks.raw.quotes`, 1 partition is fine on the free tier).
-Auto-create is usually disabled, so doing it up front avoids a startup
-error.
+1. **Create the service** in the Aiven console (free `Business-0` plan is
+   enough for a single producer).
+2. **Create the topic** before the first deploy (default
+   `stonks.raw.quotes`, 1 partition is fine on the free tier). Auto-create
+   is usually disabled, so doing it up front avoids a startup error.
+3. **Get the connection info** under the service's *Connection details*:
+   - *Service URI* → split into `AIVEN_KAFKA_HOST` and `AIVEN_KAFKA_PORT`
+     (the port is usually `13038` for SASL_SSL)
+   - *User* and *Password* → `AIVEN_KAFKA_USERNAME` / `_PASSWORD`
+4. **(Optional) Download the CA cert** from the Aiven console and paste
+   its full contents into the `AIVEN_CA_CERT` secret. If you skip this,
+   the system trust store on Ubuntu (`ca-certificates`) will validate
+   the chain — Aiven's broker cert chains to Let's Encrypt, so it works
+   out of the box.
 
 ## Daily use
 
@@ -75,9 +86,14 @@ overwritten on the next deploy, so prefer the GitHub Secrets path.
 
 ## Firewall
 
-The service binds to `127.0.0.1:8000`. To expose it publicly, either:
-- Put it behind nginx/Caddy and open `:443` in the Hetzner firewall, or
-- Change the `ExecStart` to bind to `0.0.0.0` and open `:8000`.
+The service binds to `0.0.0.0:8000`, so you also need a Hetzner Cloud
+firewall rule allowing inbound TCP on port 8000 from the public internet
+(or a narrower CIDR if you prefer). Add it in the Hetzner Cloud console
+under **Firewalls → your firewall → Inbound rules**:
 
-For a resume-friendly setup I'd recommend the nginx + Let's Encrypt path
-once you're past V1.
+| Protocol | Port | Source |
+|---|---|---|
+| TCP | 8000 | `0.0.0.0/0` (or your IP/CIDR) |
+
+Without this rule the OS-level `ss` will show port 8000 listening, but
+external traffic will be dropped at the Hetzner edge.

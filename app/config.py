@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     kafka_client_id: str = "stonks-in-motion"
     kafka_transport: str = "native"  # "native" | "rest"
     kafka_rest_base_url: str | None = None
+    # Optional: pin a specific CA bundle when connecting to Aiven. When unset,
+    # librdkafka falls back to the system trust store, which works for Aiven
+    # (its broker cert chains to Let's Encrypt, included in `ca-certificates`).
+    kafka_ssl_ca_location: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

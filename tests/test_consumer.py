@@ -152,6 +152,40 @@ def test_kafka_source_omits_ssl_ca_location_when_file_missing(tmp_path):
     assert "ssl.ca.location" not in cfg
 
 
+def test_kafka_source_attaches_mtls_cert_and_key_when_both_exist(tmp_path):
+    cert = tmp_path / "client.crt"
+    cert.write_text("-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n")
+    key = tmp_path / "client.key"
+    key.write_text("-----BEGIN PRIVATE KEY-----\nstub\n-----END PRIVATE KEY-----\n")
+    settings = _make_settings(
+        kafka_ssl_certificate_location=str(cert),
+        kafka_ssl_key_location=str(key),
+    )
+    with patch("app.consumer.kafka_source.Consumer") as ConsumerCls:
+        from app.consumer.kafka_source import KafkaSource
+
+        KafkaSource(settings)
+        cfg = ConsumerCls.call_args[0][0]
+    assert cfg["ssl.certificate.location"] == str(cert)
+    assert cfg["ssl.key.location"] == str(key)
+
+
+def test_kafka_source_skips_mtls_when_only_cert_present(tmp_path):
+    cert = tmp_path / "client.crt"
+    cert.write_text("-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n")
+    settings = _make_settings(
+        kafka_ssl_certificate_location=str(cert),
+        kafka_ssl_key_location=str(tmp_path / "missing.key"),
+    )
+    with patch("app.consumer.kafka_source.Consumer") as ConsumerCls:
+        from app.consumer.kafka_source import KafkaSource
+
+        KafkaSource(settings)
+        cfg = ConsumerCls.call_args[0][0]
+    assert "ssl.certificate.location" not in cfg
+    assert "ssl.key.location" not in cfg
+
+
 # ---------------------------------------------------------------------------
 # consume_loop (end-to-end with mocked source)
 # ---------------------------------------------------------------------------

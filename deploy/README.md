@@ -51,6 +51,8 @@ repo. Use **Repository secrets** (not environment):
 | `AIVEN_KAFKA_PASSWORD` | From the Aiven console |
 | `AIVEN_KAFKA_TOPIC` | `stonks.raw.quotes` (or whatever you create) |
 | `AIVEN_CA_CERT` | *Optional.* Contents of the CA cert from the Aiven console. Leave empty to use the system trust store (works for Aiven's Let's Encrypt chain). |
+| `AIVEN_CLIENT_CERT` | Contents of the mTLS access certificate (`service.cert` from the Aiven console). Aiven's Kafka brokers require this if mTLS is enabled; leave empty to attempt SASL-only. |
+| `AIVEN_CLIENT_KEY` | Contents of the mTLS access key (`service.key` from the Aiven console). Must be set together with `AIVEN_CLIENT_CERT`. |
 
 ## Aiven Kafka
 
@@ -68,6 +70,14 @@ repo. Use **Repository secrets** (not environment):
    the system trust store on Ubuntu (`ca-certificates`) will validate
    the chain — Aiven's broker cert chains to Let's Encrypt, so it works
    out of the box.
+5. **(Usually required) mTLS access cert + key.** Aiven ships every
+   Kafka service with mTLS access certs. The broker sends a TLS
+   `certificate required` alert during the handshake if it was
+   provisioned with one and the client doesn't present it. Download
+   `service.cert` and `service.key` from the Aiven console
+   (Overview → Connection information → Certificates) and paste each
+   into the `AIVEN_CLIENT_CERT` and `AIVEN_CLIENT_KEY` secrets.
+   If your service is SASL-only, leave both empty.
 
 ## Daily use
 

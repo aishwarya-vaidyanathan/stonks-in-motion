@@ -52,6 +52,12 @@ class Settings(BaseSettings):
     # librdkafka falls back to the system trust store, which works for Aiven
     # (its broker cert chains to Let's Encrypt, included in `ca-certificates`).
     kafka_ssl_ca_location: str | None = None
+    # Optional mTLS client certificate + key. Aiven Kafka ships with mTLS
+    # access certs by default; the broker rejects SASL_SSL handshakes with
+    # "certificate required" if these aren't provided. Both must be set (or
+    # both omitted) for mTLS to engage.
+    kafka_ssl_certificate_location: str | None = None
+    kafka_ssl_key_location: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

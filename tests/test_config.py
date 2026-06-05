@@ -62,3 +62,17 @@ def test_settings_kafka_ssl_ca_location_loads_from_env(monkeypatch):
     monkeypatch.setenv("KAFKA_SSL_CA_LOCATION", "/opt/secrets/ca.pem")
     s = Settings()
     assert s.kafka_ssl_ca_location == "/opt/secrets/ca.pem"
+
+
+def test_settings_mtls_paths_default_to_none():
+    s = Settings()
+    assert s.kafka_ssl_certificate_location is None
+    assert s.kafka_ssl_key_location is None
+
+
+def test_settings_mtls_paths_load_from_env(monkeypatch):
+    monkeypatch.setenv("KAFKA_SSL_CERTIFICATE_LOCATION", "/opt/secrets/client.crt")
+    monkeypatch.setenv("KAFKA_SSL_KEY_LOCATION", "/opt/secrets/client.key")
+    s = Settings()
+    assert s.kafka_ssl_certificate_location == "/opt/secrets/client.crt"
+    assert s.kafka_ssl_key_location == "/opt/secrets/client.key"

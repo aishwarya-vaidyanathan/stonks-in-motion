@@ -44,6 +44,15 @@ class KafkaSource:
         ca_path = settings.kafka_ssl_ca_location
         if ca_path and os.path.isfile(ca_path):
             consumer_config["ssl.ca.location"] = ca_path
+        # mTLS: only attach the client cert + key when BOTH files exist on
+        # disk. Aiven's Kafka brokers send "certificate required" alerts if
+        # they were provisioned with mTLS access certs but the client doesn't
+        # present one, so omitting both keeps SASL-only auth working.
+        cert_path = settings.kafka_ssl_certificate_location
+        key_path = settings.kafka_ssl_key_location
+        if cert_path and key_path and os.path.isfile(cert_path) and os.path.isfile(key_path):
+            consumer_config["ssl.certificate.location"] = cert_path
+            consumer_config["ssl.key.location"] = key_path
         self._consumer = Consumer(consumer_config)
 
     def subscribe(self) -> None:

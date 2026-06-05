@@ -71,31 +71,43 @@ jobs:
             KAFKA_CLIENT_ID=stonks-in-motion
             KAFKA_TRANSPORT=native
             KAFKA_SSL_CA_LOCATION=/opt/stonks-in-motion/certs/ca.pem
+            KAFKA_SSL_CERTIFICATE_LOCATION=/opt/stonks-in-motion/certs/client.crt
+            KAFKA_SSL_KEY_LOCATION=/opt/stonks-in-motion/certs/client.key
             EOF
             chmod 600 /opt/stonks-in-motion/.env
             echo ".env written (mode 600)"
 
-      - name: Write Aiven CA cert from secret
+      - name: Write Aiven CA + mTLS client cert/key from secrets
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # `AIVEN_CA_CERT` is optional; if unset, librdkafka will use the
-          # system trust store (works for Aiven's Let's Encrypt chain).
+          # Each secret is optional. Missing cert files fall through to
+          # the system trust store (CA) or skip mTLS (client cert/key).
+          # We `rm -f` the file when the secret is empty so a previous
+          # deploy's cert doesn't linger.
           script: |
             set -euo pipefail
-            CERT_PATH="/opt/stonks-in-motion/certs/ca.pem"
-            if [[ -z "${{ secrets.AIVEN_CA_CERT }}" ]]; then
-              echo "AIVEN_CA_CERT secret is empty; relying on system trust store"
-              rm -f "$CERT_PATH"
-              exit 0
-            fi
-            umask 077
-            mkdir -p /opt/stonks-in-motion/certs
-            printf '%s' "${{ secrets.AIVEN_CA_CERT }}" > "$CERT_PATH"
-            chmod 600 "$CERT_PATH"
-            echo "CA cert written to $CERT_PATH (mode 600)"
+            CERT_DIR="/opt/stonks-in-motion/certs"
+            mkdir -p "$CERT_DIR"
+
+            for entry in \
+              "ca.pem:${{ secrets.AIVEN_CA_CERT }}" \
+              "client.crt:${{ secrets.AIVEN_CLIENT_CERT }}" \
+              "client.key:${{ secrets.AIVEN_CLIENT_KEY }}"; do
+              name="${entry%%:*}"
+              value="${entry#*:}"
+              path="$CERT_DIR/$name"
+              if [[ -z "$value" ]]; then
+                echo "$name: secret empty, removing $path"
+                rm -f "$path"
+                continue
+              fi
+              printf '%s' "$value" > "$path"
+              chmod 600 "$path"
+              echo "$name: written ($path, mode 600)"
+            done
 
       - name: Install / update Python dependencies
         uses: appleboy/ssh-action@master

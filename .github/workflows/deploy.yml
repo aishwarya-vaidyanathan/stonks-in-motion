@@ -1,0 +1,112 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync code to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "/opt/stonks-in-motion/"
+          strip_components: 0
+          exclude: |
+            .git
+            .venv
+            __pycache__
+            *.pyc
+            .pytest_cache
+            .ruff_cache
+            .coverage
+            htmlcov
+            logs
+            .env
+            deploy_key
+            deploy_key.pub
+            .github
+            .idea
+            .vscode
+
+      - name: Write .env from secrets
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            umask 077
+            cat > /opt/stonks-in-motion/.env <<EOF
+            APP_HOST=127.0.0.1
+            APP_PORT=8000
+            LOG_LEVEL=INFO
+            LOG_DIR=/opt/stonks-in-motion/logs
+            FINNHUB_API_KEY=${{ secrets.FINNHUB_API_KEY }}
+            FINNHUB_BASE_URL=https://finnhub.io/api/v1
+            FINNHUB_TICKERS=["AAPL","MSFT","GOOG","AMZN","NVDA","TSLA"]
+            FINNHUB_POLL_INTERVAL_SECONDS=10
+            FINNHUB_REQUEST_TIMEOUT_SECONDS=10
+            FINNHUB_MAX_RETRIES=3
+            KAFKA_BOOTSTRAP_SERVERS=${{ secrets.AIVEN_KAFKA_HOST }}:${{ secrets.AIVEN_KAFKA_PORT }}
+            KAFKA_SECURITY_PROTOCOL=SASL_SSL
+            KAFKA_SASL_MECHANISM=PLAIN
+            KAFKA_SASL_USERNAME=${{ secrets.AIVEN_KAFKA_USERNAME }}
+            KAFKA_SASL_PASSWORD=${{ secrets.AIVEN_KAFKA_PASSWORD }}
+            KAFKA_TOPIC=${{ secrets.AIVEN_KAFKA_TOPIC }}
+            KAFKA_CLIENT_ID=stonks-in-motion
+            KAFKA_TRANSPORT=native
+            EOF
+            chmod 600 /opt/stonks-in-motion/.env
+            echo ".env written (mode 600)"
+
+      - name: Install / update Python dependencies
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/stonks-in-motion
+            if [ ! -d .venv ]; then
+              python3 -m venv .venv
+            fi
+            .venv/bin/pip install --quiet --upgrade pip
+            .venv/bin/pip install --quiet -r requirements.txt
+
+      - name: Restart service and wait for healthy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            sudo systemctl restart stonks-in-motion
+            # Wait up to ~15s for the app to respond.
+            for i in $(seq 1 15); do
+              if curl -fsS http://127.0.0.1:8000/healthz >/dev/null; then
+                echo "Health check passed after ${i}s"
+                sudo systemctl is-active stonks-in-motion
+                exit 0
+              fi
+              sleep 1
+            done
+            echo "Health check failed; recent logs:" >&2
+            sudo journalctl -u stonks-in-motion --no-pager -n 100 >&2
+            exit 1

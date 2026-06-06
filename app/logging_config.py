@@ -34,6 +34,13 @@ def setup_logging(level: str = "INFO", component: str = "web") -> None:
         force=True,
     )
 
+    # Quiet libraries that would otherwise log secrets or spam at INFO.
+    # httpx in particular prints the full request URL (including query
+    # params like the Finnhub `?token=...`) at INFO, which would put the
+    # API key in our producer log file. Drop it to WARNING.
+    for noisy in ("httpx", "httpx._client", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,

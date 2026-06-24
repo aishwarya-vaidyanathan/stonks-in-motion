@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .logging_config import get_logger, setup_logging
@@ -57,3 +59,8 @@ app.include_router(control_router)
 @app.get("/healthz", tags=["meta"])
 def healthz() -> dict[str, bool]:
     return {"ok": True}
+
+
+_frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if _frontend_dist.is_dir():
+    app.mount("/", StaticFiles(directory=_frontend_dist, html=True), name="static")

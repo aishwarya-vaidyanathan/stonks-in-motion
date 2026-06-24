@@ -8,23 +8,24 @@ A production-shaped streaming pipeline with a modern React dashboard:
 - **Aiven Kafka** (free tier) holds the messages on a topic.
 - **Consumer** tails that topic and writes a structured JSON log.
 - A **FastAPI** backend exposes **Start / Stop** controls, SSE streaming, and a REST API.
-- A **React + Tremor** dashboard on GitHub Pages shows real-time price data, charts, and pipeline controls.
+- A **React + Tremor** dashboard shows real-time price data, charts, and pipeline controls.
 
 ## Architecture
 
 ```
-┌───────────────────┐      HTTPS/JSON       ┌────────────────────┐
-│   GitHub Pages    │ ◄──────────────────── │   Render.com       │
-│   React + Tremor  │ ────────────────────► │   FastAPI backend   │
-│   (static SPA)    │   start/stop/status   │   Producer/Consumer │
-└───────────────────┘                       └────────┬───────────┘
-                                                     │
-                                      ┌──────────────┼──────────────┐
-                                      ▼              ▼              ▼
-                                ┌──────────┐  ┌───────────┐  ┌──────────┐
-                                │ Finnhub  │  │   Aiven   │  │  logs/   │
-                                │ REST API │  │   Kafka   │  │  *.jsonl │
-                                └──────────┘  └───────────┘  └──────────┘
+┌──────────────────────────────────────┐
+│           Railway (single service)   │
+│                                      │
+│   FastAPI backend + React static     │
+│   Producer/Consumer subprocesses     │
+└──────────────┬───────────────────────┘
+               │
+    ┌──────────┼──────────┐
+    ▼          ▼          ▼
+┌──────────┐ ┌─────────┐ ┌──────────┐
+│ Finnhub  │ │  Aiven  │ │  logs/   │
+│ REST API │ │  Kafka  │ │  *.jsonl │
+└──────────┘ └─────────┘ └──────────┘
 ```
 
 ## Status
@@ -51,8 +52,8 @@ app/                  # FastAPI backend
 frontend/             # React + Vite + Tremor dashboard
   src/                # Components, hooks, API client
 tests/                # pytest (66 tests)
-.github/workflows/    # ci.yml + deploy-pages.yml
-render.yaml           # Render.com deploy blueprint
+.github/workflows/    # ci.yml
+railway.json          # Railway deploy config
 ```
 
 ## Quickstart (local development)
@@ -113,24 +114,15 @@ All configuration is environment-variable driven. See [`.env.example`](.env.exam
 | `KAFKA_TOPIC` | Default `stonks.raw.quotes` |
 | `CORS_ORIGINS` | Comma-separated allowed origins for the frontend |
 
-## Deploy
+## Deploy (Railway)
 
-### Backend (Render.com)
-
-1. Connect repo to Render.com
-2. Render auto-detects `render.yaml` blueprint
-3. Set environment variables in Render dashboard (secrets from `.env.example`)
-4. Push to `main` triggers auto-deploy
-
-### Frontend (GitHub Pages)
-
-1. Set `RENDER_API_URL` as a GitHub repository variable (e.g. `https://stonks-in-motion.onrender.com`)
-2. Enable GitHub Pages with "GitHub Actions" as the source
-3. Push frontend changes to `main` triggers the `deploy-pages.yml` workflow
+1. Connect repo to [Railway](https://railway.app)
+2. Set environment variables: `FINNHUB_API_KEY`, `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_SASL_USERNAME`, `KAFKA_SASL_PASSWORD`
+3. Push to `main` triggers auto-deploy (builds frontend + starts FastAPI serving both API and dashboard)
 
 ## Tech stack
 
 **Backend:** Python 3.12, FastAPI, pydantic-settings, httpx, confluent-kafka, structlog
 **Frontend:** React 19, Vite, TypeScript, Tremor, Tailwind CSS
-**Infra:** Render.com (free tier), GitHub Pages, Aiven Kafka (free tier), Finnhub (free tier)
+**Infra:** Railway, Aiven Kafka (free tier), Finnhub (free tier)
 **CI:** GitHub Actions (pytest, ruff, eslint, vite build)

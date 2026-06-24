@@ -26,7 +26,6 @@ class Settings(BaseSettings):
     cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: [
             "http://localhost:5173",
-            "https://aishwarya-vaidyanathan.github.io",
         ]
     )
 

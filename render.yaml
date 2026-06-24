@@ -14,14 +14,12 @@ services:
       - key: KAFKA_BOOTSTRAP_SERVERS
         sync: false
       - key: KAFKA_SECURITY_PROTOCOL
-        value: SSL
+        value: SASL_SSL
+      - key: KAFKA_SASL_USERNAME
+        sync: false
+      - key: KAFKA_SASL_PASSWORD
+        sync: false
       - key: KAFKA_TOPIC
         value: stonks.raw.quotes
-      - key: KAFKA_SSL_CA_LOCATION
-        sync: false
-      - key: KAFKA_SSL_CERTIFICATE_LOCATION
-        sync: false
-      - key: KAFKA_SSL_KEY_LOCATION
-        sync: false
       - key: CORS_ORIGINS
         sync: false

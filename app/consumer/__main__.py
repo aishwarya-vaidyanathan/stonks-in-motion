@@ -79,10 +79,10 @@ def run(settings: Settings) -> None:
 
 def main() -> None:
     """Entry point for `python -m app.consumer`."""
-    from ..config import Settings
+    from ..config import Settings, materialize_inline_certs
     from ..logging_config import setup_logging
 
-    settings = Settings()
+    settings = materialize_inline_certs(Settings())
     setup_logging(level=settings.log_level, component="consumer")
     run(settings)
 

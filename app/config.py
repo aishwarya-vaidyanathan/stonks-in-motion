@@ -8,6 +8,8 @@ dependency injection (`Depends(get_settings)`) so tests can override cleanly.
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from functools import lru_cache
 from typing import Annotated
 
@@ -74,6 +76,9 @@ class Settings(BaseSettings):
     # librdkafka falls back to the system trust store, which works for Aiven
     # (its broker cert chains to Let's Encrypt, included in `ca-certificates`).
     kafka_ssl_ca_location: str | None = None
+    kafka_ssl_ca_content: str | None = None
+    kafka_ssl_cert_content: str | None = None
+    kafka_ssl_key_content: str | None = None
     # Optional mTLS client certificate + key. Aiven Kafka ships with mTLS
     # access certs by default; for mTLS-only services these are the only
     # way to authenticate. Both must point to existing files (or both be
@@ -130,7 +135,40 @@ class Settings(BaseSettings):
         return value
 
 
+_CERT_DIR: str | None = None
+
+
+def _ensure_cert_dir() -> str:
+    global _CERT_DIR
+    if _CERT_DIR is None:
+        _CERT_DIR = tempfile.mkdtemp(prefix="kafka-certs-")
+    return _CERT_DIR
+
+
+def _write_cert(name: str, content: str) -> str:
+    path = os.path.join(_ensure_cert_dir(), name)
+    with open(path, "w") as f:
+        f.write(content)
+    os.chmod(path, 0o600)
+    return path
+
+
+def materialize_inline_certs(settings: Settings) -> Settings:
+    """Write inline cert content env vars to temp files, update path fields."""
+    if settings.kafka_ssl_ca_content and not settings.kafka_ssl_ca_location:
+        settings.kafka_ssl_ca_location = _write_cert("ca.pem", settings.kafka_ssl_ca_content)
+    if settings.kafka_ssl_cert_content and not settings.kafka_ssl_certificate_location:
+        settings.kafka_ssl_certificate_location = _write_cert(
+            "service.cert", settings.kafka_ssl_cert_content
+        )
+    if settings.kafka_ssl_key_content and not settings.kafka_ssl_key_location:
+        settings.kafka_ssl_key_location = _write_cert(
+            "service.key", settings.kafka_ssl_key_content
+        )
+    return settings
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Cached singleton used by the FastAPI lifespan and as a DI dependency."""
-    return Settings()
+    return materialize_inline_certs(Settings())

@@ -102,10 +102,29 @@ def test_logs_rejects_out_of_range_tail(client_with_manager):
     assert r.status_code == 422
 
 
-def test_dashboard_includes_required_elements():
-    """The HTML must still carry the elements app.js looks for."""
-    with TestClient(app) as client:
-        r = client.get("/")
-        assert r.status_code == 200
-        for el in ["start", "stop", "producer-state", "consumer-state", "uptime", "log"]:
-            assert f'id="{el}"' in r.text
+def test_quotes_history_returns_parsed_quotes(client_with_manager, tmp_path: Path):
+    """The /api/quotes/history endpoint returns parsed quote values from consumer.jsonl."""
+    client, _ = client_with_manager
+    log_file = tmp_path / "consumer.jsonl"
+    records = [
+        json.dumps(
+            {
+                "topic": "t",
+                "partition": 0,
+                "offset": i,
+                "key": "AAPL",
+                "value": {
+                    "symbol": "AAPL",
+                    "ts": f"2026-06-04T20:00:{i:02d}Z",
+                    "current": 150.0 + i,
+                },
+            }
+        )
+        for i in range(5)
+    ]
+    log_file.write_text("\n".join(records) + "\n")
+    r = client.get("/api/quotes/history?tail=3")
+    assert r.status_code == 200
+    quotes = r.json()
+    assert len(quotes) == 3
+    assert quotes[-1]["symbol"] == "AAPL"

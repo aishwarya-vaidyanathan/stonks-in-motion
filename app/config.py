@@ -23,6 +23,19 @@ class Settings(BaseSettings):
     app_port: int = 8000
     log_level: str = "INFO"
     log_dir: str = "logs"
+    cors_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost:5173"]
+    )
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors(cls, value: object) -> object:
+        if isinstance(value, str):
+            s = value.strip()
+            if s.startswith("["):
+                return json.loads(s)
+            return [o.strip() for o in s.split(",") if o.strip()]
+        return value
 
     # ---- Finnhub ----
     finnhub_api_key: str

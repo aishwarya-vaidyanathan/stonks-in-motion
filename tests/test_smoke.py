@@ -1,5 +1,4 @@
-"""End-to-end smoke test: the FastAPI app boots, serves the dashboard,
-and the static asset is reachable."""
+"""Smoke tests: FastAPI boots and core endpoints respond."""
 
 from __future__ import annotations
 
@@ -15,20 +14,20 @@ def test_healthz_returns_ok():
     assert r.json() == {"ok": True}
 
 
-def test_index_renders_dashboard():
+def test_cors_headers_present():
     client = TestClient(app)
-    r = client.get("/")
+    r = client.options(
+        "/api/status",
+        headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET"},
+    )
     assert r.status_code == 200
-    assert "text/html" in r.headers["content-type"]
-    body = r.text
-    assert "stonks-in-motion" in body
-    assert "Start Stream" in body
-    assert "Stop Stream" in body
-    assert 'id="log"' in body  # log tail placeholder
+    assert "access-control-allow-origin" in r.headers
 
 
-def test_static_app_js_served():
+def test_api_status_reachable():
     client = TestClient(app)
-    r = client.get("/static/app.js")
+    r = client.get("/api/status")
     assert r.status_code == 200
-    assert "addEventListener" in r.text
+    body = r.json()
+    assert "producer" in body
+    assert "consumer" in body

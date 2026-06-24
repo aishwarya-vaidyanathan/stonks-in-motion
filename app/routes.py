@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import os
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import StreamingResponse
 
 from .config import Settings
 from .process_manager import ProcessManager
@@ -78,3 +81,56 @@ def logs(
         "log_path": str(log_path),
         "lines": _tail(log_path, tail),
     }
+
+
+@router.get("/quotes/history", summary="Parsed quote history for charts")
+def quotes_history(
+    manager: ManagerDep,
+    tail: int = Query(200, ge=1, le=1000),
+) -> list[dict]:
+    log_path = Path(manager.settings.log_dir) / "consumer.jsonl"
+    raw_lines = _tail(log_path, tail)
+    quotes: list[dict] = []
+    for line in raw_lines:
+        try:
+            record = json.loads(line)
+            value = record.get("value")
+            if isinstance(value, dict) and "symbol" in value:
+                quotes.append(value)
+        except (json.JSONDecodeError, KeyError):
+            continue
+    return quotes
+
+
+async def _sse_generator(manager: ProcessManager):
+    """Yield SSE events: pipeline status + latest quotes every 2 seconds."""
+    log_path = Path(manager.settings.log_dir) / "consumer.jsonl"
+    last_offset = 0
+    while True:
+        state = manager.state()
+        yield f"event: status\ndata: {json.dumps(state)}\n\n"
+
+        if log_path.exists():
+            size = log_path.stat().st_size
+            if size > last_offset:
+                new_lines = _tail(log_path, 10)
+                for line in new_lines:
+                    try:
+                        record = json.loads(line)
+                        value = record.get("value")
+                        if isinstance(value, dict) and "symbol" in value:
+                            yield f"event: quote\ndata: {json.dumps(value)}\n\n"
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+                last_offset = size
+
+        await asyncio.sleep(2)
+
+
+@router.get("/stream", summary="SSE stream of status and quotes")
+async def stream(manager: ManagerDep) -> StreamingResponse:
+    return StreamingResponse(
+        _sse_generator(manager),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

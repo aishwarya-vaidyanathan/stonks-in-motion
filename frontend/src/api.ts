@@ -1,6 +1,6 @@
 import type { HealthResponse, LogsResponse, PipelineStatus, Quote } from './types';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_URL = import.meta.env.VITE_API_URL || 'https://stonks-in-motion.onrender.com';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {

@@ -24,7 +24,10 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_dir: str = "logs"
     cors_origins: Annotated[list[str], NoDecode] = Field(
-        default_factory=lambda: ["http://localhost:5173"]
+        default_factory=lambda: [
+            "http://localhost:5173",
+            "https://aishwarya-vaidyanathan.github.io",
+        ]
     )
 
     @field_validator("cors_origins", mode="before")

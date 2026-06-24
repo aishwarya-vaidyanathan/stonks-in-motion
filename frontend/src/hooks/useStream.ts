@@ -20,8 +20,9 @@ export function useStream(): UseStreamReturn {
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const addQuote = useCallback((q: Quote) => {
+    const stamped = { ...q, receivedAt: q.receivedAt || new Date().toISOString() };
     setQuotes((prev) => {
-      const next = [...prev, q];
+      const next = [...prev, stamped];
       return next.length > MAX_QUOTES ? next.slice(-MAX_QUOTES) : next;
     });
   }, []);
@@ -39,12 +40,10 @@ export function useStream(): UseStreamReturn {
       try {
         const [s, history] = await Promise.all([getStatus(), getQuotesHistory(50)]);
         setStatus(s);
+        const now = new Date().toISOString();
+        const stamped = history.map((q) => ({ ...q, receivedAt: q.receivedAt || now }));
         setQuotes((prev) => {
-          // Merge: keep existing quotes, add any new ones from history
-          const existingTs = new Set(prev.map((q) => `${q.symbol}-${q.ts}`));
-          const newOnes = history.filter((q) => !existingTs.has(`${q.symbol}-${q.ts}`));
-          if (newOnes.length === 0) return prev;
-          const merged = [...prev, ...newOnes];
+          const merged = [...prev, ...stamped];
           return merged.length > MAX_QUOTES ? merged.slice(-MAX_QUOTES) : merged;
         });
         setError(null);
@@ -106,7 +105,10 @@ export function useStream(): UseStreamReturn {
   // Load initial history on mount
   useEffect(() => {
     getQuotesHistory(200)
-      .then((history) => setQuotes(history))
+      .then((history) => {
+        const now = new Date().toISOString();
+        setQuotes(history.map((q) => ({ ...q, receivedAt: q.receivedAt || now })));
+      })
       .catch(() => {});
   }, []);
 

@@ -1,6 +1,6 @@
 import { Card, SparkAreaChart } from '@tremor/react';
-import type { PipelineStatus, Quote, Ticker } from '../types';
-import { TICKER_COLORS, TICKERS } from '../types';
+import type { PipelineStatus, Quote } from '../types';
+import { TICKERS } from '../types';
 import { useMemo } from 'react';
 
 interface KpiCardsProps {
@@ -38,8 +38,8 @@ export function KpiCards({ quotes, status }: KpiCardsProps) {
     for (const ticker of TICKERS) {
       const tickerQuotes = quotes.filter((q) => q.symbol === ticker);
       const latest = tickerQuotes.length > 0 ? tickerQuotes[tickerQuotes.length - 1] : null;
-      const sparkline = tickerQuotes.slice(-20).map((q) => ({
-        time: q.ts,
+      const sparkline = tickerQuotes.slice(-30).map((q) => ({
+        time: q.receivedAt,
         price: q.current,
       }));
       map.set(ticker, { latest, sparkline });
@@ -52,51 +52,55 @@ export function KpiCards({ quotes, status }: KpiCardsProps) {
   const producerUptime = status?.producer?.uptime_seconds;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-7">
       {TICKERS.map((ticker) => {
         const data = tickerData.get(ticker);
         const latest = data?.latest;
         const sparkline = data?.sparkline ?? [];
         const changePct = latest?.change_pct ?? 0;
         const isPositive = changePct >= 0;
-        const color = TICKER_COLORS[ticker as Ticker];
 
         return (
           <Card key={ticker} className="!bg-gray-900 !ring-gray-800 p-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-400">{ticker}</p>
-                <p className="mt-1 text-lg font-semibold text-gray-100">
-                  {latest ? formatPrice(latest.current) : '--'}
-                </p>
-              </div>
-              {sparkline.length > 1 && (
-                <SparkAreaChart
-                  data={sparkline}
-                  categories={['price']}
-                  index="time"
-                  colors={[isPositive ? 'emerald' : 'red']}
-                  className="h-8 w-16"
-                  curveType="monotone"
-                />
-              )}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold tracking-wide text-gray-400">{ticker}</p>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                  isPositive
+                    ? 'bg-emerald-400/10 text-emerald-400'
+                    : 'bg-red-400/10 text-red-400'
+                }`}
+              >
+                {latest ? formatPct(changePct) : '--'}
+              </span>
             </div>
-            <p
-              className={`mt-1 text-xs font-medium ${
-                isPositive ? 'text-emerald-400' : 'text-red-400'
-              }`}
-              style={{ color: latest ? undefined : color }}
-            >
-              {latest ? formatPct(changePct) : 'No data'}
+            <p className="mt-1 text-lg font-bold text-gray-100 sm:text-xl">
+              {latest ? formatPrice(latest.current) : '--'}
             </p>
+            {sparkline.length > 1 && (
+              <SparkAreaChart
+                data={sparkline}
+                categories={['price']}
+                index="time"
+                colors={[isPositive ? 'emerald' : 'red']}
+                className="mt-2 h-10 w-full"
+                curveType="monotone"
+                autoMinValue={true}
+              />
+            )}
+            {sparkline.length <= 1 && (
+              <div className="mt-2 flex h-10 items-center justify-center text-[10px] text-gray-600">
+                awaiting data
+              </div>
+            )}
           </Card>
         );
       })}
 
       {/* Pipeline stats card */}
-      <Card className="!bg-gray-900 !ring-gray-800 p-3">
-        <p className="text-xs font-medium text-gray-400">Pipeline</p>
-        <div className="mt-2 space-y-1">
+      <Card className="!bg-gray-900 !ring-gray-800/50 border border-cyan-900/30 p-3">
+        <p className="text-xs font-semibold tracking-wide text-cyan-400">Pipeline</p>
+        <div className="mt-3 space-y-2">
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">Uptime</span>
             <span className="font-mono text-gray-300">{formatUptime(producerUptime)}</span>

@@ -10,7 +10,6 @@ export function Dashboard() {
   const { status: streamStatus, quotes, isConnected, error } = useStream();
   const [status, setStatus] = useState<PipelineStatus | null>(null);
 
-  // Merge SSE status updates with manual control updates
   useEffect(() => {
     if (streamStatus) {
       setStatus(streamStatus);
@@ -24,10 +23,10 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-950">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+      <header className="sticky top-0 z-40 border-b border-gray-800/80 bg-gray-950/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold text-gray-100">
+            <h1 className="text-base font-bold text-gray-100 sm:text-lg">
               stonks-in-motion
             </h1>
             <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[10px] font-medium text-gray-400">
@@ -43,7 +42,7 @@ export function Dashboard() {
       </header>
 
       {/* Main content */}
-      <main className="mx-auto max-w-7xl space-y-4 px-4 py-4">
+      <main className="mx-auto max-w-7xl space-y-4 px-4 py-4 sm:px-6 lg:space-y-6 lg:px-8 lg:py-6">
         {/* Error banner */}
         {error && (
           <div className="rounded-md bg-amber-900/30 px-3 py-2 text-xs text-amber-300">
@@ -51,19 +50,16 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* KPI Cards */}
         <KpiCards quotes={quotes} status={status} />
-
-        {/* Price Chart */}
         <PriceChart quotes={quotes} />
-
-        {/* Message Table */}
         <MessageTable quotes={quotes} />
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800 py-3 text-center text-xs text-gray-600">
-        stonks-in-motion &middot; Finnhub &rarr; Aiven Kafka &rarr; Dashboard
+      <footer className="border-t border-gray-800/50 py-4">
+        <p className="text-center text-[10px] text-gray-600 sm:text-xs">
+          stonks-in-motion &middot; Finnhub &rarr; Aiven Kafka &rarr; Dashboard
+        </p>
       </footer>
     </div>
   );

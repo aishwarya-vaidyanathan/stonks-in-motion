@@ -2,6 +2,7 @@
 export interface Quote {
   symbol: string;
   ts: string;
+  receivedAt: string;
   current: number;
   open: number;
   high: number;

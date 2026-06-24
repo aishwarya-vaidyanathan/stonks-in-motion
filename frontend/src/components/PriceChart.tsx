@@ -36,46 +36,38 @@ export function PriceChart({ quotes }: PriceChartProps) {
   const chartData = useMemo(() => {
     if (quotes.length === 0) return [];
 
-    // Filter by time range
     const rangeMinutes = RANGE_MINUTES[range];
     let filtered = quotes;
     if (rangeMinutes !== null) {
       const cutoff = Date.now() - rangeMinutes * 60 * 1000;
       filtered = quotes.filter((q) => {
         try {
-          return new Date(q.ts).getTime() >= cutoff;
+          return new Date(q.receivedAt).getTime() >= cutoff;
         } catch {
           return true;
         }
       });
     }
 
-    // Group by timestamp and pivot tickers into columns
+    // Group by receivedAt (rounded to nearest second) so chart spreads over time
     const timeMap = new Map<string, Record<string, number | string>>();
 
     for (const q of filtered) {
-      const timeKey = q.ts;
-      if (!timeMap.has(timeKey)) {
-        timeMap.set(timeKey, { time: formatTime(timeKey) });
+      const d = new Date(q.receivedAt);
+      const roundedKey = new Date(Math.round(d.getTime() / 1000) * 1000).toISOString();
+      if (!timeMap.has(roundedKey)) {
+        timeMap.set(roundedKey, { time: formatTime(q.receivedAt) });
       }
-      const row = timeMap.get(timeKey)!;
+      const row = timeMap.get(roundedKey)!;
       row[q.symbol] = q.current;
     }
 
-    // Sort by original timestamp
     const entries = Array.from(timeMap.entries());
-    entries.sort(([a], [b]) => {
-      try {
-        return new Date(a).getTime() - new Date(b).getTime();
-      } catch {
-        return 0;
-      }
-    });
+    entries.sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime());
 
     return entries.map(([, row]) => row);
   }, [quotes, range]);
 
-  // Determine which tickers are actually present in the data
   const activeTickers = useMemo(() => {
     const present = new Set(quotes.map((q) => q.symbol));
     return TICKERS.filter((t) => present.has(t));
@@ -83,7 +75,6 @@ export function PriceChart({ quotes }: PriceChartProps) {
 
   const tremorColors = activeTickers.map((t) => {
     const hex = TICKER_COLORS[t as Ticker];
-    // Map hex to closest Tremor color name
     const colorMap: Record<string, string> = {
       '#06b6d4': 'cyan',
       '#8b5cf6': 'violet',
@@ -100,7 +91,7 @@ export function PriceChart({ quotes }: PriceChartProps) {
   return (
     <Card className="!bg-gray-900 !ring-gray-800">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-300">Price History</h3>
+        <h3 className="text-sm font-medium text-gray-300 sm:text-base">Price History</h3>
         <div className="flex gap-1">
           {ranges.map((r) => (
             <button
@@ -119,12 +110,12 @@ export function PriceChart({ quotes }: PriceChartProps) {
       </div>
 
       {chartData.length === 0 ? (
-        <div className="flex h-64 items-center justify-center text-sm text-gray-500">
+        <div className="flex h-48 items-center justify-center text-sm text-gray-500 sm:h-64 lg:h-80">
           Waiting for quote data...
         </div>
       ) : (
         <AreaChart
-          className="h-64"
+          className="h-48 sm:h-64 lg:h-80"
           data={chartData}
           index="time"
           categories={activeTickers}
@@ -134,6 +125,7 @@ export function PriceChart({ quotes }: PriceChartProps) {
           showGridLines={false}
           showAnimation={true}
           connectNulls={true}
+          autoMinValue={true}
           yAxisWidth={65}
           valueFormatter={(n: number) =>
             n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })

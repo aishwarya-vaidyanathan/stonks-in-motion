@@ -1,5 +1,0 @@
-[phases.setup]
-nixPkgs = ["python3", "gcc", "nodejs_20", "npm"]
-
-[phases.build]
-cmds = ["cd frontend && npm ci && npm run build"]

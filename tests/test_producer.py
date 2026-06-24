@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import os
 from datetime import UTC, datetime
 from unittest.mock import patch
 
@@ -208,23 +209,29 @@ def test_kafka_sink_passes_ssl_ca_location_when_set(tmp_path):
     assert cfg["ssl.ca.location"] == str(cert)
 
 
-def test_kafka_sink_omits_ssl_ca_location_when_unset():
+def test_kafka_sink_falls_back_to_system_ca_when_unset():
     settings = _make_settings()
     assert settings.kafka_ssl_ca_location is None
     with patch("app.producer.kafka_sink.Producer") as ProducerCls:
         KafkaSink(settings)
         cfg = ProducerCls.call_args[0][0]
-    assert "ssl.ca.location" not in cfg
+    if os.path.isfile("/etc/ssl/certs/ca-certificates.crt"):
+        assert cfg["ssl.ca.location"] == "/etc/ssl/certs/ca-certificates.crt"
+    else:
+        assert "ssl.ca.location" not in cfg
 
 
-def test_kafka_sink_omits_ssl_ca_location_when_file_missing(tmp_path):
+def test_kafka_sink_falls_back_to_system_ca_when_file_missing(tmp_path):
     """A path that doesn't exist on disk must fall through to the system trust store."""
     missing = tmp_path / "does-not-exist.pem"
     settings = _make_settings(kafka_ssl_ca_location=str(missing))
     with patch("app.producer.kafka_sink.Producer") as ProducerCls:
         KafkaSink(settings)
         cfg = ProducerCls.call_args[0][0]
-    assert "ssl.ca.location" not in cfg
+    if os.path.isfile("/etc/ssl/certs/ca-certificates.crt"):
+        assert cfg["ssl.ca.location"] == "/etc/ssl/certs/ca-certificates.crt"
+    else:
+        assert "ssl.ca.location" not in cfg
 
 
 def test_kafka_sink_attaches_mtls_cert_and_key_when_both_exist(tmp_path):

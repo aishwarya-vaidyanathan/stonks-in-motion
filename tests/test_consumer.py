@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import threading
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -130,7 +131,7 @@ def test_kafka_source_passes_ssl_ca_location_when_set(tmp_path):
     assert cfg["ssl.ca.location"] == str(cert)
 
 
-def test_kafka_source_omits_ssl_ca_location_when_unset():
+def test_kafka_source_falls_back_to_system_ca_when_unset():
     settings = _make_settings()
     assert settings.kafka_ssl_ca_location is None
     with patch("app.consumer.kafka_source.Consumer") as ConsumerCls:
@@ -138,10 +139,13 @@ def test_kafka_source_omits_ssl_ca_location_when_unset():
 
         KafkaSource(settings)
         cfg = ConsumerCls.call_args[0][0]
-    assert "ssl.ca.location" not in cfg
+    if os.path.isfile("/etc/ssl/certs/ca-certificates.crt"):
+        assert cfg["ssl.ca.location"] == "/etc/ssl/certs/ca-certificates.crt"
+    else:
+        assert "ssl.ca.location" not in cfg
 
 
-def test_kafka_source_omits_ssl_ca_location_when_file_missing(tmp_path):
+def test_kafka_source_falls_back_to_system_ca_when_file_missing(tmp_path):
     missing = tmp_path / "does-not-exist.pem"
     settings = _make_settings(kafka_ssl_ca_location=str(missing))
     with patch("app.consumer.kafka_source.Consumer") as ConsumerCls:
@@ -149,7 +153,10 @@ def test_kafka_source_omits_ssl_ca_location_when_file_missing(tmp_path):
 
         KafkaSource(settings)
         cfg = ConsumerCls.call_args[0][0]
-    assert "ssl.ca.location" not in cfg
+    if os.path.isfile("/etc/ssl/certs/ca-certificates.crt"):
+        assert cfg["ssl.ca.location"] == "/etc/ssl/certs/ca-certificates.crt"
+    else:
+        assert "ssl.ca.location" not in cfg
 
 
 def test_kafka_source_attaches_mtls_cert_and_key_when_both_exist(tmp_path):

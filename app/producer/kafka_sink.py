@@ -52,6 +52,8 @@ class KafkaSink:
         ca_path = settings.kafka_ssl_ca_location
         if ca_path and os.path.isfile(ca_path):
             producer_config["ssl.ca.location"] = ca_path
+        elif os.path.isfile("/etc/ssl/certs/ca-certificates.crt"):
+            producer_config["ssl.ca.location"] = "/etc/ssl/certs/ca-certificates.crt"
         # mTLS: only attach the client cert + key when BOTH files exist on
         # disk. Aiven's Kafka brokers send "certificate required" alerts if
         # they were provisioned with mTLS access certs but the client doesn't

@@ -83,6 +83,20 @@ def logs(
     }
 
 
+@router.get("/logs/{component}", summary="Tail any component log file")
+def component_logs(
+    component: str,
+    manager: ManagerDep,
+    tail: int = Query(50, ge=1, le=500),
+) -> dict:
+    log_dir = Path(manager.settings.log_dir)
+    for ext in ("log", "jsonl"):
+        path = log_dir / f"{component}.{ext}"
+        if path.exists():
+            return {"log_path": str(path), "lines": _tail(path, tail)}
+    return {"log_path": f"{log_dir}/{component}.*", "lines": []}
+
+
 @router.get("/quotes/history", summary="Parsed quote history for charts")
 def quotes_history(
     manager: ManagerDep,

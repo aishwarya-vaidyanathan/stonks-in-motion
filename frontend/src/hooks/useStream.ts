@@ -107,9 +107,7 @@ export function useStream(): UseStreamReturn {
   useEffect(() => {
     getQuotesHistory(200)
       .then((history) => setQuotes(history))
-      .catch(() => {
-        // Backend might be sleeping; cold start will handle it
-      });
+      .catch(() => {});
   }, []);
 
   // Start SSE connection

@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import type { Quote } from '../types';
+import { TICKER_COLORS } from '../types';
+import { fmt, fmtUsd, pct } from '../lib/series';
 
 interface MessageTableProps {
   quotes: Quote[];
@@ -7,87 +9,72 @@ interface MessageTableProps {
 
 function formatTime(ts: string): string {
   try {
-    return new Date(ts).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    });
+    return new Date(ts).toLocaleTimeString('en-US', { hour12: false });
   } catch {
     return ts;
   }
 }
 
-function formatPrice(n: number): string {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-}
-
-function formatPct(n: number): string {
-  const sign = n >= 0 ? '+' : '';
-  return `${sign}${n.toFixed(2)}%`;
-}
-
 export function MessageTable({ quotes }: MessageTableProps) {
+  // Newest first; the very latest row flashes on its direction.
   const rows = useMemo(() => [...quotes].reverse().slice(0, 100), [quotes]);
+  const latestKey = quotes.length ? quotes[quotes.length - 1].receivedAt : null;
 
   return (
-    <div className="border border-gray-800 bg-gray-950">
-      <div className="flex items-center justify-between border-b border-gray-800 px-3 py-2">
-        <h3 className="text-xs font-bold tracking-wide text-gray-400">RECENT QUOTES</h3>
-        <span className="font-mono text-[10px] text-gray-600">{rows.length} rows</span>
+    <>
+      <div className="seclabel reveal" style={{ animationDelay: '0.18s' }}>
+        <h2>Recent Quotes</h2>
+        <span className="meta">{rows.length} rows</span>
       </div>
-
-      {rows.length === 0 ? (
-        <div className="flex h-32 flex-col items-center justify-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <div className="h-1.5 w-1.5 rounded-full bg-gray-600 pulse-line" />
-            <div className="h-1.5 w-1.5 rounded-full bg-gray-600 pulse-line" style={{ animationDelay: '0.5s' }} />
-            <div className="h-1.5 w-1.5 rounded-full bg-gray-600 pulse-line" style={{ animationDelay: '1s' }} />
-          </div>
-          <p className="text-xs text-gray-500">Waiting for quotes</p>
-        </div>
-      ) : (
-        <div className="max-h-[28rem] overflow-auto">
-          <table className="w-full text-left text-[11px]">
-            <thead className="sticky top-0 z-10 bg-gray-900 text-gray-500">
-              <tr className="border-b border-gray-800">
-                <th className="px-2 py-1.5 font-medium">#</th>
-                <th className="px-2 py-1.5 font-medium">Time</th>
-                <th className="px-2 py-1.5 font-medium">Symbol</th>
-                <th className="px-2 py-1.5 text-right font-medium">Price</th>
-                <th className="px-2 py-1.5 text-right font-medium">Change %</th>
-                <th className="px-2 py-1.5 text-right font-medium">Open</th>
-                <th className="px-2 py-1.5 text-right font-medium">High</th>
-                <th className="px-2 py-1.5 text-right font-medium">Low</th>
-                <th className="px-2 py-1.5 text-right font-medium">Prev Close</th>
+      <div className="panel reveal" style={{ animationDelay: '0.20s' }}>
+        <div className="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Time</th>
+                <th>Symbol</th>
+                <th>Price</th>
+                <th>Chg%</th>
+                <th>Open</th>
+                <th>High</th>
+                <th>Low</th>
+                <th>Prev</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((q, i) => {
-                const isPositive = q.change_pct >= 0;
-                return (
-                  <tr
-                    key={`${q.symbol}-${q.receivedAt}-${i}`}
-                    className="border-b border-gray-800/30 even:bg-gray-900/40 hover:bg-gray-800/50"
-                  >
-                    <td className="px-2 py-1 font-mono text-gray-600">{i + 1}</td>
-                    <td className="px-2 py-1 font-mono text-gray-400">{formatTime(q.receivedAt)}</td>
-                    <td className="px-2 py-1 font-bold text-gray-200">{q.symbol}</td>
-                    <td className="px-2 py-1 text-right font-mono text-gray-200">{formatPrice(q.current)}</td>
-                    <td className={`px-2 py-1 text-right font-mono font-semibold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {formatPct(q.change_pct)}
-                    </td>
-                    <td className="px-2 py-1 text-right font-mono text-gray-400">{formatPrice(q.open)}</td>
-                    <td className="px-2 py-1 text-right font-mono text-gray-400">{formatPrice(q.high)}</td>
-                    <td className="px-2 py-1 text-right font-mono text-gray-400">{formatPrice(q.low)}</td>
-                    <td className="px-2 py-1 text-right font-mono text-gray-400">{formatPrice(q.prev_close)}</td>
-                  </tr>
-                );
-              })}
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
+                    Waiting for quotes
+                  </td>
+                </tr>
+              ) : (
+                rows.map((q, i) => {
+                  const up = q.change_pct >= 0;
+                  const flash = i === 0 && q.receivedAt === latestKey ? (up ? 'flash-up' : 'flash-down') : '';
+                  return (
+                    <tr key={`${q.symbol}-${q.receivedAt}-${i}`} className={flash}>
+                      <td className="num">{i + 1}</td>
+                      <td style={{ color: 'var(--muted)' }}>{formatTime(q.receivedAt)}</td>
+                      <td className="sym">
+                        <i style={{ background: TICKER_COLORS[q.symbol as keyof typeof TICKER_COLORS] ?? 'var(--muted)' }} />
+                        {q.symbol}
+                      </td>
+                      <td>{fmtUsd(q.current)}</td>
+                      <td className={up ? 'up' : 'down'}>{pct(q.change_pct)}</td>
+                      <td style={{ color: 'var(--muted)' }}>{fmt(q.open)}</td>
+                      <td style={{ color: 'var(--muted)' }}>{fmt(q.high)}</td>
+                      <td style={{ color: 'var(--muted)' }}>{fmt(q.low)}</td>
+                      <td style={{ color: 'var(--muted)' }}>{fmt(q.prev_close)}</td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

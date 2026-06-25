@@ -74,7 +74,7 @@ export function MessageTable({ quotes }: MessageTableProps) {
               {rows.map((q, i) => {
                 const isPositive = q.change_pct >= 0;
                 return (
-                  <TableRow key={`${q.symbol}-${q.receivedAt}-${i}`} className="border-gray-800/50">
+                  <TableRow key={`${q.symbol}-${q.receivedAt}-${i}`} className="border-gray-800/50 even:bg-gray-800/20">
                     <TableCell className="font-mono text-xs !text-gray-400">
                       {formatTime(q.receivedAt)}
                     </TableCell>

@@ -1,4 +1,4 @@
-import { AreaChart, Card } from '@tremor/react';
+import { Card, LineChart } from '@tremor/react';
 import { useMemo, useState } from 'react';
 import type { Quote, Ticker } from '../types';
 import { TICKER_COLORS, TICKERS } from '../types';
@@ -114,7 +114,7 @@ export function PriceChart({ quotes }: PriceChartProps) {
           Waiting for quote data...
         </div>
       ) : (
-        <AreaChart
+        <LineChart
           className="h-48 sm:h-64 lg:h-80"
           data={chartData}
           index="time"

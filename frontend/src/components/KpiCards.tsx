@@ -1,6 +1,6 @@
-import { Card, SparkAreaChart } from '@tremor/react';
-import type { PipelineStatus, Quote } from '../types';
-import { TICKERS } from '../types';
+import { Card, SparkLineChart } from '@tremor/react';
+import type { PipelineStatus, Quote, Ticker } from '../types';
+import { TICKER_COLORS, TICKERS } from '../types';
 import { useMemo } from 'react';
 
 interface KpiCardsProps {
@@ -61,7 +61,7 @@ export function KpiCards({ quotes, status }: KpiCardsProps) {
         const isPositive = changePct >= 0;
 
         return (
-          <Card key={ticker} className="!bg-gray-900 !ring-gray-800 p-3">
+          <Card key={ticker} className="!bg-gray-900 !ring-gray-800 border-l-2 p-3" style={{ borderLeftColor: TICKER_COLORS[ticker as Ticker] }}>
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold tracking-wide text-gray-400">{ticker}</p>
               <span
@@ -78,7 +78,7 @@ export function KpiCards({ quotes, status }: KpiCardsProps) {
               {latest ? formatPrice(latest.current) : '--'}
             </p>
             {sparkline.length > 1 && (
-              <SparkAreaChart
+              <SparkLineChart
                 data={sparkline}
                 categories={['price']}
                 index="time"

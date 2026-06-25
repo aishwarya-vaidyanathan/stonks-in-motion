@@ -7,21 +7,22 @@
   color-scheme: dark;
 }
 
-/* Scrollbar styling for the message table */
-.max-h-80::-webkit-scrollbar {
-  width: 6px;
+/* Thin scrollbar for data tables */
+.max-h-80::-webkit-scrollbar,
+[class*="max-h-"]::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
 
-.max-h-80::-webkit-scrollbar-track {
-  background: rgb(17 24 39);
+[class*="max-h-"]::-webkit-scrollbar-track {
+  background: rgb(3 7 18);
 }
 
-.max-h-80::-webkit-scrollbar-thumb {
+[class*="max-h-"]::-webkit-scrollbar-thumb {
   background: rgb(55 65 81);
-  border-radius: 3px;
 }
 
-.max-h-80::-webkit-scrollbar-thumb:hover {
+[class*="max-h-"]::-webkit-scrollbar-thumb:hover {
   background: rgb(75 85 99);
 }
 

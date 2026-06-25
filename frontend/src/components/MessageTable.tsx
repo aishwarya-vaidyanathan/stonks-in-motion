@@ -1,12 +1,3 @@
-import {
-  Card,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-} from '@tremor/react';
 import { useMemo } from 'react';
 import type { Quote } from '../types';
 
@@ -16,8 +7,7 @@ interface MessageTableProps {
 
 function formatTime(ts: string): string {
   try {
-    const d = new Date(ts);
-    return d.toLocaleTimeString('en-US', {
+    return new Date(ts).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -38,13 +28,14 @@ function formatPct(n: number): string {
 }
 
 export function MessageTable({ quotes }: MessageTableProps) {
-  const rows = useMemo(() => {
-    return [...quotes].reverse().slice(0, 50);
-  }, [quotes]);
+  const rows = useMemo(() => [...quotes].reverse().slice(0, 100), [quotes]);
 
   return (
-    <Card className="!bg-gray-900 !ring-gray-800">
-      <h3 className="mb-3 text-sm font-medium text-gray-300 sm:text-base">Recent Messages</h3>
+    <div className="border border-gray-800 bg-gray-950">
+      <div className="flex items-center justify-between border-b border-gray-800 px-3 py-2">
+        <h3 className="text-xs font-bold tracking-wide text-gray-400">RECENT QUOTES</h3>
+        <span className="font-mono text-[10px] text-gray-600">{rows.length} rows</span>
+      </div>
 
       {rows.length === 0 ? (
         <div className="flex h-32 flex-col items-center justify-center gap-2">
@@ -56,60 +47,47 @@ export function MessageTable({ quotes }: MessageTableProps) {
           <p className="text-xs text-gray-500">Waiting for quotes</p>
         </div>
       ) : (
-        <div className="max-h-80 overflow-y-auto lg:max-h-96">
-          <Table>
-            <TableHead>
-              <TableRow className="border-gray-800">
-                <TableHeaderCell className="!text-gray-400">Time</TableHeaderCell>
-                <TableHeaderCell className="!text-gray-400">Symbol</TableHeaderCell>
-                <TableHeaderCell className="!text-gray-400 text-right">Price</TableHeaderCell>
-                <TableHeaderCell className="!text-gray-400 text-right">Change</TableHeaderCell>
-                <TableHeaderCell className="hidden !text-gray-400 text-right md:table-cell">
-                  Open
-                </TableHeaderCell>
-                <TableHeaderCell className="hidden !text-gray-400 text-right md:table-cell">
-                  High
-                </TableHeaderCell>
-                <TableHeaderCell className="hidden !text-gray-400 text-right md:table-cell">
-                  Low
-                </TableHeaderCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
+        <div className="max-h-[28rem] overflow-auto">
+          <table className="w-full text-left text-[11px]">
+            <thead className="sticky top-0 z-10 bg-gray-900 text-gray-500">
+              <tr className="border-b border-gray-800">
+                <th className="px-2 py-1.5 font-medium">#</th>
+                <th className="px-2 py-1.5 font-medium">Time</th>
+                <th className="px-2 py-1.5 font-medium">Symbol</th>
+                <th className="px-2 py-1.5 text-right font-medium">Price</th>
+                <th className="px-2 py-1.5 text-right font-medium">Change %</th>
+                <th className="px-2 py-1.5 text-right font-medium">Open</th>
+                <th className="px-2 py-1.5 text-right font-medium">High</th>
+                <th className="px-2 py-1.5 text-right font-medium">Low</th>
+                <th className="px-2 py-1.5 text-right font-medium">Prev Close</th>
+              </tr>
+            </thead>
+            <tbody>
               {rows.map((q, i) => {
                 const isPositive = q.change_pct >= 0;
                 return (
-                  <TableRow key={`${q.symbol}-${q.receivedAt}-${i}`} className="border-gray-800/50 even:bg-gray-800/20">
-                    <TableCell className="font-mono text-xs !text-gray-400">
-                      {formatTime(q.receivedAt)}
-                    </TableCell>
-                    <TableCell className="font-semibold !text-gray-200">{q.symbol}</TableCell>
-                    <TableCell className="text-right font-mono !text-gray-200">
-                      {formatPrice(q.current)}
-                    </TableCell>
-                    <TableCell
-                      className={`text-right font-mono text-xs font-semibold ${
-                        isPositive ? '!text-emerald-400' : '!text-red-400'
-                      }`}
-                    >
+                  <tr
+                    key={`${q.symbol}-${q.receivedAt}-${i}`}
+                    className="border-b border-gray-800/30 even:bg-gray-900/40 hover:bg-gray-800/50"
+                  >
+                    <td className="px-2 py-1 font-mono text-gray-600">{i + 1}</td>
+                    <td className="px-2 py-1 font-mono text-gray-400">{formatTime(q.receivedAt)}</td>
+                    <td className="px-2 py-1 font-bold text-gray-200">{q.symbol}</td>
+                    <td className="px-2 py-1 text-right font-mono text-gray-200">{formatPrice(q.current)}</td>
+                    <td className={`px-2 py-1 text-right font-mono font-semibold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                       {formatPct(q.change_pct)}
-                    </TableCell>
-                    <TableCell className="hidden text-right font-mono text-xs !text-gray-400 md:table-cell">
-                      {formatPrice(q.open)}
-                    </TableCell>
-                    <TableCell className="hidden text-right font-mono text-xs !text-gray-400 md:table-cell">
-                      {formatPrice(q.high)}
-                    </TableCell>
-                    <TableCell className="hidden text-right font-mono text-xs !text-gray-400 md:table-cell">
-                      {formatPrice(q.low)}
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                    <td className="px-2 py-1 text-right font-mono text-gray-400">{formatPrice(q.open)}</td>
+                    <td className="px-2 py-1 text-right font-mono text-gray-400">{formatPrice(q.high)}</td>
+                    <td className="px-2 py-1 text-right font-mono text-gray-400">{formatPrice(q.low)}</td>
+                    <td className="px-2 py-1 text-right font-mono text-gray-400">{formatPrice(q.prev_close)}</td>
+                  </tr>
                 );
               })}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

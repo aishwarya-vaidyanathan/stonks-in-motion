@@ -1,11 +1,10 @@
-import { Card, SparkLineChart } from '@tremor/react';
-import type { PipelineStatus, Quote, Ticker } from '../types';
+import { SparkLineChart } from '@tremor/react';
+import type { Quote, Ticker } from '../types';
 import { TICKER_COLORS, TICKERS } from '../types';
 import { useMemo } from 'react';
 
 interface KpiCardsProps {
   quotes: Quote[];
-  status: PipelineStatus | null;
 }
 
 interface TickerData {
@@ -22,19 +21,9 @@ function formatPct(n: number): string {
   return `${sign}${n.toFixed(2)}%`;
 }
 
-function formatUptime(seconds: number | null | undefined): string {
-  if (!seconds) return '0s';
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.round((seconds % 3600) / 60);
-  return `${h}h ${m}m`;
-}
-
-export function KpiCards({ quotes, status }: KpiCardsProps) {
+export function KpiCards({ quotes }: KpiCardsProps) {
   const tickerData = useMemo(() => {
     const map = new Map<string, TickerData>();
-
     for (const ticker of TICKERS) {
       const tickerQuotes = quotes.filter((q) => q.symbol === ticker);
       const latest = tickerQuotes.length > 0 ? tickerQuotes[tickerQuotes.length - 1] : null;
@@ -44,81 +33,65 @@ export function KpiCards({ quotes, status }: KpiCardsProps) {
       }));
       map.set(ticker, { latest, sparkline });
     }
-
     return map;
   }, [quotes]);
 
-  const totalMessages = quotes.length;
-  const producerUptime = status?.producer?.uptime_seconds;
-
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-7">
+    <div className="grid grid-cols-1 gap-px bg-gray-800 sm:grid-cols-2 lg:grid-cols-3">
       {TICKERS.map((ticker) => {
         const data = tickerData.get(ticker);
         const latest = data?.latest;
         const sparkline = data?.sparkline ?? [];
         const changePct = latest?.change_pct ?? 0;
         const isPositive = changePct >= 0;
+        const color = TICKER_COLORS[ticker as Ticker];
 
         return (
-          <Card key={ticker} className="!bg-gray-900 !ring-gray-800 border-l-2 p-3" style={{ borderLeftColor: TICKER_COLORS[ticker as Ticker] }}>
+          <div key={ticker} className="relative bg-gray-950 p-3">
+            {/* Header: ticker + change badge */}
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold tracking-wide text-gray-400">{ticker}</p>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-sm" style={{ backgroundColor: color }} />
+                <span className="text-xs font-bold tracking-wide text-gray-300">{ticker}</span>
+              </div>
               <span
-                className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                  isPositive
-                    ? 'bg-emerald-400/10 text-emerald-400'
-                    : 'bg-red-400/10 text-red-400'
+                className={`font-mono text-[11px] font-semibold ${
+                  isPositive ? 'text-emerald-400' : 'text-red-400'
                 }`}
               >
                 {latest ? formatPct(changePct) : '--'}
               </span>
             </div>
-            <p className="mt-1 text-lg font-bold text-gray-100 sm:text-xl">
-              {latest ? formatPrice(latest.current) : '--'}
-            </p>
-            {sparkline.length > 1 && (
-              <SparkLineChart
-                data={sparkline}
-                categories={['price']}
-                index="time"
-                colors={[isPositive ? 'emerald' : 'red']}
-                className="mt-2 h-10 w-full"
-                curveType="monotone"
-                autoMinValue={true}
-              />
-            )}
-            {sparkline.length <= 1 && (
-              <div className="relative mt-2 h-10 w-full overflow-hidden">
-                {/* Animated flatline with sweep dot */}
-                <div className="absolute inset-y-1/2 left-0 right-0 h-px bg-gray-700 pulse-line" />
-                <div className="sweep-dot absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-cyan-500/50" />
+
+            {/* Chart area */}
+            <div className="relative mt-1">
+              {sparkline.length > 1 ? (
+                <SparkLineChart
+                  data={sparkline}
+                  categories={['price']}
+                  index="time"
+                  colors={[isPositive ? 'emerald' : 'red']}
+                  className="h-20 w-full"
+                  curveType="monotone"
+                  autoMinValue={true}
+                />
+              ) : (
+                <div className="relative h-20 w-full overflow-hidden">
+                  <div className="absolute inset-y-1/2 left-0 right-0 h-px bg-gray-700 pulse-line" />
+                  <div className="sweep-dot absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-cyan-500/50" />
+                </div>
+              )}
+
+              {/* Price overlay bottom-right */}
+              <div className="absolute bottom-0 right-0 bg-gray-950/80 px-1">
+                <span className="font-mono text-sm font-bold text-gray-100">
+                  {latest ? formatPrice(latest.current) : '--'}
+                </span>
               </div>
-            )}
-          </Card>
+            </div>
+          </div>
         );
       })}
-
-      {/* Pipeline stats card */}
-      <Card className="!bg-gray-900 !ring-gray-800/50 border border-cyan-900/30 p-3">
-        <p className="text-xs font-semibold tracking-wide text-cyan-400">Pipeline</p>
-        <div className="mt-3 space-y-2">
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-500">Uptime</span>
-            <span className="font-mono text-gray-300">{formatUptime(producerUptime)}</span>
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-500">Messages</span>
-            <span className="font-mono text-gray-300">{totalMessages}</span>
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-500">Tickers</span>
-            <span className="font-mono text-gray-300">
-              {new Set(quotes.map((q) => q.symbol)).size}
-            </span>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }

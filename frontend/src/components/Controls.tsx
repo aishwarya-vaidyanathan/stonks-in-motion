@@ -8,6 +8,15 @@ interface ControlsProps {
   onStatusUpdate: (s: PipelineStatus) => void;
 }
 
+function formatUptime(seconds: number | null | undefined): string {
+  if (!seconds) return '0s';
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.round((seconds % 3600) / 60);
+  return `${h}h${m}m`;
+}
+
 export function Controls({ status, isConnected, onStatusUpdate }: ControlsProps) {
   const [loading, setLoading] = useState<'start' | 'stop' | null>(null);
 
@@ -18,8 +27,7 @@ export function Controls({ status, isConnected, onStatusUpdate }: ControlsProps)
   const handleStart = async () => {
     setLoading('start');
     try {
-      const result = await startPipeline();
-      onStatusUpdate(result);
+      onStatusUpdate(await startPipeline());
     } catch {
       // Error handled by SSE/polling
     } finally {
@@ -30,8 +38,7 @@ export function Controls({ status, isConnected, onStatusUpdate }: ControlsProps)
   const handleStop = async () => {
     setLoading('stop');
     try {
-      const result = await stopPipeline();
-      onStatusUpdate(result);
+      onStatusUpdate(await stopPipeline());
     } catch {
       // Error handled by SSE/polling
     } finally {
@@ -40,50 +47,39 @@ export function Controls({ status, isConnected, onStatusUpdate }: ControlsProps)
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-      {/* Status dot */}
-      <div className="flex items-center gap-1.5">
-        <div
-          className={`h-2.5 w-2.5 rounded-full ${
-            pipelineRunning
-              ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]'
-              : 'bg-gray-500'
-          }`}
-        />
-        <span className="text-xs text-gray-400">
-          {pipelineRunning ? 'Running' : 'Stopped'}
+    <div className="flex items-center gap-2 text-[10px] sm:gap-3">
+      {/* Pipeline stats */}
+      <div className="hidden items-center gap-3 font-mono text-gray-500 sm:flex">
+        <span>UP {formatUptime(status?.producer?.uptime_seconds)}</span>
+        <span className={isConnected ? 'text-cyan-500' : 'text-amber-500'}>
+          {isConnected ? 'SSE' : 'POLL'}
         </span>
       </div>
 
-      {/* Connection indicator */}
-      <div className="flex items-center gap-1.5">
-        <div
-          className={`h-1.5 w-1.5 rounded-full ${
-            isConnected ? 'bg-cyan-400' : 'bg-amber-400'
-          }`}
-        />
-        <span className="text-xs text-gray-500">
-          {isConnected ? 'SSE' : 'Poll'}
-        </span>
-      </div>
+      {/* Status dot */}
+      <div
+        className={`h-2 w-2 rounded-full ${
+          pipelineRunning
+            ? 'bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.6)]'
+            : 'bg-gray-600'
+        }`}
+      />
 
       {/* Buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={handleStart}
-          disabled={loading !== null || pipelineRunning}
-          className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white transition-all hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {loading === 'start' ? 'Starting...' : 'Start'}
-        </button>
-        <button
-          onClick={handleStop}
-          disabled={loading !== null || !pipelineRunning}
-          className="rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white transition-all hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {loading === 'stop' ? 'Stopping...' : 'Stop'}
-        </button>
-      </div>
+      <button
+        onClick={handleStart}
+        disabled={loading !== null || pipelineRunning}
+        className="border border-emerald-600 px-2 py-0.5 font-bold text-emerald-400 transition-colors hover:bg-emerald-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        {loading === 'start' ? 'STARTING' : 'START'}
+      </button>
+      <button
+        onClick={handleStop}
+        disabled={loading !== null || !pipelineRunning}
+        className="border border-red-600 px-2 py-0.5 font-bold text-red-400 transition-colors hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        {loading === 'stop' ? 'STOPPING' : 'STOP'}
+      </button>
     </div>
   );
 }

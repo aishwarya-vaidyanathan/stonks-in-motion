@@ -5,6 +5,7 @@ import { Controls } from './Controls';
 import { KpiCards } from './KpiCards';
 import { PriceChart } from './PriceChart';
 import { MessageTable } from './MessageTable';
+import { TickerTape } from './TickerTape';
 
 export function Dashboard() {
   const { status: streamStatus, quotes, isConnected, error } = useStream();
@@ -42,7 +43,7 @@ export function Dashboard() {
       </header>
 
       {/* Main content */}
-      <main className="mx-auto max-w-7xl space-y-4 px-4 py-4 sm:px-6 lg:space-y-6 lg:px-8 lg:py-6">
+      <main className="mx-auto max-w-7xl space-y-4 px-4 py-4 pb-14 sm:px-6 lg:space-y-6 lg:px-8 lg:py-6">
         {/* Error banner */}
         {error && (
           <div className="rounded-md bg-amber-900/30 px-3 py-2 text-xs text-amber-300">
@@ -56,11 +57,14 @@ export function Dashboard() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800/50 py-4">
+      <footer className="border-t border-gray-800/50 pb-12 pt-4">
         <p className="text-center text-[10px] text-gray-600 sm:text-xs">
           stonks-in-motion &middot; Finnhub &rarr; Aiven Kafka &rarr; Dashboard
         </p>
       </footer>
+
+      {/* Live ticker tape */}
+      <TickerTape quotes={quotes} />
     </div>
   );
 }

@@ -47,8 +47,13 @@ export function MessageTable({ quotes }: MessageTableProps) {
       <h3 className="mb-3 text-sm font-medium text-gray-300 sm:text-base">Recent Messages</h3>
 
       {rows.length === 0 ? (
-        <div className="flex h-32 items-center justify-center text-sm text-gray-500">
-          No messages yet. Start the pipeline to see live data.
+        <div className="flex h-32 flex-col items-center justify-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-gray-600 pulse-line" />
+            <div className="h-1.5 w-1.5 rounded-full bg-gray-600 pulse-line" style={{ animationDelay: '0.5s' }} />
+            <div className="h-1.5 w-1.5 rounded-full bg-gray-600 pulse-line" style={{ animationDelay: '1s' }} />
+          </div>
+          <p className="text-xs text-gray-500">Waiting for quotes</p>
         </div>
       ) : (
         <div className="max-h-80 overflow-y-auto lg:max-h-96">

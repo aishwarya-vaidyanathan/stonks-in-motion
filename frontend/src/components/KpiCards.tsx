@@ -89,8 +89,10 @@ export function KpiCards({ quotes, status }: KpiCardsProps) {
               />
             )}
             {sparkline.length <= 1 && (
-              <div className="mt-2 flex h-10 items-center justify-center text-[10px] text-gray-600">
-                awaiting data
+              <div className="relative mt-2 h-10 w-full overflow-hidden">
+                {/* Animated flatline with sweep dot */}
+                <div className="absolute inset-y-1/2 left-0 right-0 h-px bg-gray-700 pulse-line" />
+                <div className="sweep-dot absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-cyan-500/50" />
               </div>
             )}
           </Card>

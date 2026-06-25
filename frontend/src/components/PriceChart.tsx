@@ -110,8 +110,15 @@ export function PriceChart({ quotes }: PriceChartProps) {
       </div>
 
       {chartData.length === 0 ? (
-        <div className="flex h-48 items-center justify-center text-sm text-gray-500 sm:h-64 lg:h-80">
-          Waiting for quote data...
+        <div className="relative flex h-48 flex-col items-center justify-center sm:h-64 lg:h-80">
+          {/* Decorative flatline across chart area */}
+          <svg className="pulse-line absolute inset-0 h-full w-full" preserveAspectRatio="none">
+            <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#06b6d4" strokeWidth="1" strokeOpacity="0.2" strokeDasharray="8 4" />
+          </svg>
+          <div className="relative z-10 text-center">
+            <p className="font-mono text-sm text-gray-500">No market data</p>
+            <p className="mt-1 text-xs text-gray-600">Start the pipeline to see live prices</p>
+          </div>
         </div>
       ) : (
         <LineChart

@@ -24,3 +24,43 @@
 .max-h-80::-webkit-scrollbar-thumb:hover {
   background: rgb(75 85 99);
 }
+
+/* Ticker tape continuous scroll */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-scroll {
+  animation: ticker-scroll 30s linear infinite;
+}
+
+.ticker-scroll:hover {
+  animation-play-state: paused;
+}
+
+/* Empty state pulse line */
+@keyframes pulse-line {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.4; }
+}
+
+.pulse-line {
+  animation: pulse-line 2.5s ease-in-out infinite;
+}
+
+/* Sweeping dot for empty sparklines */
+@keyframes sweep-dot {
+  0% { left: 0; }
+  100% { left: 100%; }
+}
+
+.sweep-dot {
+  animation: sweep-dot 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-scroll { animation: none; }
+  .pulse-line { animation: none; opacity: 0.25; }
+  .sweep-dot { animation: none; left: 50%; }
+}

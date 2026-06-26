@@ -21,10 +21,55 @@ export interface SubprocessStatus {
   log_file: string | null;
 }
 
+/** US market open/closed state from Finnhub /stock/market-status. */
+export interface MarketStatus {
+  isOpen: boolean | null;
+  session: string | null;
+}
+
 /** Full pipeline status returned by /api/status and SSE "status" events. */
 export interface PipelineStatus {
   producer: SubprocessStatus;
   consumer: SubprocessStatus;
+  market?: MarketStatus;
+}
+
+/** Company profile from /api/profiles (Finnhub /stock/profile2). */
+export interface CompanyProfile {
+  name: string | null;
+  logo: string | null;
+  marketCap: number | null; // millions USD
+  industry: string | null;
+  weburl?: string | null;
+  exchange?: string | null;
+}
+
+/** Key stats from /api/metrics (Finnhub basic financials). */
+export interface SymbolMetrics {
+  week52High: number | null;
+  week52Low: number | null;
+  pe: number | null;
+  beta: number | null;
+}
+
+/** Analyst recommendation buckets from /api/recommendations. */
+export interface Recommendation {
+  strongBuy: number;
+  buy: number;
+  hold: number;
+  sell: number;
+  strongSell: number;
+  period: string | null;
+}
+
+/** A company news headline from /api/news. */
+export interface NewsItem {
+  symbol: string;
+  headline: string;
+  source: string | null;
+  url: string | null;
+  datetime: number | null; // unix seconds
+  summary?: string | null;
 }
 
 /** Response from /api/logs. */

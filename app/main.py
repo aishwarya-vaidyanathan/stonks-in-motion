@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import get_settings
 from .logging_config import get_logger, setup_logging
 from .process_manager import ProcessManager
+from .reference import ReferenceService
 from .routes import router as control_router
 
 log = get_logger(__name__)
@@ -23,6 +24,8 @@ async def lifespan(app: FastAPI):
     setup_logging(level=settings.log_level, component="web")
     app.state.settings = settings
     app.state.process_manager = ProcessManager(settings)
+    app.state.reference = ReferenceService(settings)
+    await app.state.reference.open()
     log.info(
         "app.startup",
         host=settings.app_host,
@@ -35,13 +38,14 @@ async def lifespan(app: FastAPI):
     finally:
         log.info("app.shutdown.cleaning_up")
         app.state.process_manager.stop_all()
+        await app.state.reference.aclose()
         log.info("app.shutdown")
 
 
 app = FastAPI(
     title="stonks-in-motion",
     version="0.2.0",
-    description="Streaming stock ticker pipeline: Finnhub -> Aiven Kafka.",
+    description="Streaming stock ticker pipeline: Finnhub -> Kafka.",
     lifespan=lifespan,
 )
 

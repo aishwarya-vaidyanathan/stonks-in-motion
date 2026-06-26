@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
-import type { Quote } from '../types';
+import type { CompanyProfile, Quote } from '../types';
 import { TICKER_COLORS } from '../types';
 import { fmt, fmtUsd, pct } from '../lib/series';
+import { SymbolLogo } from './SymbolLogo';
 
 interface MessageTableProps {
   quotes: Quote[];
+  profiles: Record<string, CompanyProfile>;
 }
 
 function formatTime(ts: string): string {
@@ -15,7 +17,7 @@ function formatTime(ts: string): string {
   }
 }
 
-export function MessageTable({ quotes }: MessageTableProps) {
+export function MessageTable({ quotes, profiles }: MessageTableProps) {
   // Newest first; the very latest row flashes on its direction.
   const rows = useMemo(() => [...quotes].reverse().slice(0, 100), [quotes]);
   const latestKey = quotes.length ? quotes[quotes.length - 1].receivedAt : null;
@@ -58,7 +60,12 @@ export function MessageTable({ quotes }: MessageTableProps) {
                       <td className="num">{i + 1}</td>
                       <td style={{ color: 'var(--muted)' }}>{formatTime(q.receivedAt)}</td>
                       <td className="sym">
-                        <i style={{ background: TICKER_COLORS[q.symbol as keyof typeof TICKER_COLORS] ?? 'var(--muted)' }} />
+                        <SymbolLogo
+                          symbol={q.symbol}
+                          logo={profiles[q.symbol]?.logo}
+                          color={TICKER_COLORS[q.symbol as keyof typeof TICKER_COLORS] ?? 'var(--muted)'}
+                          size={14}
+                        />
                         {q.symbol}
                       </td>
                       <td>{fmtUsd(q.current)}</td>

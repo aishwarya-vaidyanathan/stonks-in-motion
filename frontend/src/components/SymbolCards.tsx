@@ -1,12 +1,19 @@
-import type { Quote } from '../types';
+import type { CompanyProfile, Quote, SymbolMetrics } from '../types';
 import { TICKERS, TICKER_COLORS } from '../types';
-import { fmt, fmtUsd, latestBySymbol, pct, seriesBySymbol, sparkPath } from '../lib/series';
+import { fmt, fmtCap, fmtNum, fmtUsd, latestBySymbol, pct, seriesBySymbol, sparkPath } from '../lib/series';
+import { SymbolLogo } from './SymbolLogo';
 
 interface SymbolCardsProps {
   quotes: Quote[];
+  profiles: Record<string, CompanyProfile>;
+  metrics: Record<string, SymbolMetrics>;
 }
 
-export function SymbolCards({ quotes }: SymbolCardsProps) {
+function clampPct(n: number): number {
+  return Math.max(0, Math.min(100, n));
+}
+
+export function SymbolCards({ quotes, profiles, metrics }: SymbolCardsProps) {
   const latest = latestBySymbol(quotes);
   const series = seriesBySymbol(quotes);
 
@@ -20,13 +27,15 @@ export function SymbolCards({ quotes }: SymbolCardsProps) {
         {TICKERS.map((sym) => {
           const color = TICKER_COLORS[sym];
           const q = latest[sym];
+          const profile = profiles[sym];
+          const m = metrics[sym];
 
           if (!q) {
             return (
               <div className="card" key={sym}>
                 <div className="card-top">
                   <div className="card-sym">
-                    <i style={{ background: color }} />
+                    <SymbolLogo symbol={sym} logo={profile?.logo} color={color} size={20} />
                     {sym}
                   </div>
                 </div>
@@ -38,17 +47,29 @@ export function SymbolCards({ quotes }: SymbolCardsProps) {
 
           const up = q.change_pct >= 0;
           const sp = sparkPath(series[sym], 300, 56, 4);
-          const rngPos = ((q.current - q.low) / (q.high - q.low || 1)) * 100;
+          const rngPos = clampPct(((q.current - q.low) / (q.high - q.low || 1)) * 100);
+          const w52 =
+            m?.week52High != null && m?.week52Low != null && m.week52High > m.week52Low
+              ? clampPct(((q.current - m.week52Low) / (m.week52High - m.week52Low)) * 100)
+              : null;
 
           return (
             <div className="card" key={sym}>
               <div className="card-top">
                 <div className="card-sym">
-                  <i style={{ background: color }} />
+                  <SymbolLogo symbol={sym} logo={profile?.logo} color={color} size={20} />
                   {sym}
                 </div>
-                <div className={`card-badge ${up ? 'up' : 'down'} ${up ? 'up' : 'down'}`}>{pct(q.change_pct)}</div>
+                <div className={`card-badge ${up ? 'up' : 'down'}`}>{pct(q.change_pct)}</div>
               </div>
+
+              {profile?.name && (
+                <div className="card-company">
+                  <span className="card-company-name">{profile.name}</span>
+                  <span className="card-company-cap">{fmtCap(profile.marketCap)}</span>
+                </div>
+              )}
+
               <div className="card-spark">
                 <svg viewBox="0 0 300 56" preserveAspectRatio="none">
                   <defs>
@@ -62,11 +83,13 @@ export function SymbolCards({ quotes }: SymbolCardsProps) {
                   <circle cx={sp.last[0]} cy={sp.last[1]} r="3" fill={color} />
                 </svg>
               </div>
+
               <div className="card-price">{fmtUsd(q.current)}</div>
               <div className={`card-sub ${up ? 'up' : 'down'}`}>
                 {up ? '+' : ''}
                 {fmt(q.change)} today
               </div>
+
               <div className="range">
                 <div className="range-track">
                   <div className="range-fill" style={{ left: 0, width: `${rngPos}%` }} />
@@ -77,6 +100,32 @@ export function SymbolCards({ quotes }: SymbolCardsProps) {
                   <span>H {fmt(q.high)}</span>
                 </div>
               </div>
+
+              {(w52 != null || m?.pe != null || m?.beta != null) && (
+                <div className="card-metrics">
+                  {w52 != null && (
+                    <div className="w52">
+                      <div className="w52-label">
+                        <span>52W</span>
+                        <span>
+                          {fmt(m!.week52Low!)} – {fmt(m!.week52High!)}
+                        </span>
+                      </div>
+                      <div className="w52-track">
+                        <div className="w52-mark" style={{ left: `${w52}%` }} />
+                      </div>
+                    </div>
+                  )}
+                  <div className="mstats">
+                    <span>
+                      P/E <b>{fmtNum(m?.pe, 1)}</b>
+                    </span>
+                    <span>
+                      β <b>{fmtNum(m?.beta, 2)}</b>
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

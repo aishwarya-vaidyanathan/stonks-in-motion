@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     finnhub_poll_interval_seconds: float = 10.0
     finnhub_request_timeout_seconds: float = 10.0
     finnhub_max_retries: int = 3
+    # Exchange used for market-open detection (/stock/market-status).
+    finnhub_market_exchange: str = "US"
+    # When the market is closed the producer idles instead of polling /quote;
+    # it re-checks market status this often (seconds).
+    finnhub_idle_poll_seconds: float = 60.0
 
     # ---- Kafka (Aiven) ----
     kafka_bootstrap_servers: str

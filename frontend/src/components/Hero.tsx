@@ -7,6 +7,8 @@ interface HeroProps {
   status: PipelineStatus | null;
 }
 
+
+
 const W = 600;
 const H = 150;
 const R = 48;
@@ -36,7 +38,10 @@ export function Hero({ quotes, status }: HeroProps) {
       <div className="hero-grid">
         <div className="hero-left">
           <div className="hero-eyebrow">
-            <span className="live" /> Market Pulse · {Object.keys(latestBySymbol(quotes)).length || 6} symbols
+            <span className={`live${status?.market?.isOpen === false ? ' off' : ''}`} />{' '}
+            {status?.market?.isOpen === false
+              ? 'Market Closed · last close'
+              : `Market Pulse · ${Object.keys(latestBySymbol(quotes)).length || 6} symbols`}
           </div>
 
           {view ? (

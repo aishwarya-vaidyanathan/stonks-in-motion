@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 
 from .config import Settings
 from .process_manager import ProcessManager
+from .reference import ReferenceService
 
 router = APIRouter(prefix="/api", tags=["control"])
 
@@ -26,7 +27,13 @@ def get_app_settings(request: Request) -> Settings:
     return request.app.state.settings
 
 
+def get_reference(request: Request) -> ReferenceService:
+    """Resolve the ReferenceService that the lifespan stored on app.state."""
+    return request.app.state.reference
+
+
 ManagerDep = Annotated[ProcessManager, Depends(get_manager)]
+ReferenceDep = Annotated[ReferenceService, Depends(get_reference)]
 
 
 @router.post("/start", summary="Start both producer and consumer")
@@ -42,8 +49,33 @@ def stop(manager: ManagerDep) -> dict:
 
 
 @router.get("/status", summary="Current producer/consumer state")
-def status(manager: ManagerDep) -> dict:
-    return manager.state()
+async def status(manager: ManagerDep, reference: ReferenceDep) -> dict:
+    state = manager.state()
+    state["market"] = await reference.market_status()
+    return state
+
+
+@router.get("/profiles", summary="Company profiles (logo, name, market cap)")
+async def profiles(reference: ReferenceDep) -> dict:
+    return await reference.profiles()
+
+
+@router.get("/metrics", summary="Key stats (52-week range, P/E, beta)")
+async def metrics(reference: ReferenceDep) -> dict:
+    return await reference.metrics()
+
+
+@router.get("/recommendations", summary="Analyst recommendation trends")
+async def recommendations(reference: ReferenceDep) -> dict:
+    return await reference.recommendations()
+
+
+@router.get("/news", summary="Recent company news headlines")
+async def news(
+    reference: ReferenceDep,
+    limit: int = Query(30, ge=1, le=100),
+) -> list[dict]:
+    return await reference.news(limit)
 
 
 def _tail(path: Path, n: int) -> list[str]:
@@ -116,12 +148,13 @@ def quotes_history(
     return quotes
 
 
-async def _sse_generator(manager: ProcessManager):
+async def _sse_generator(manager: ProcessManager, reference: ReferenceService):
     """Yield SSE events: pipeline status + latest quotes every 2 seconds."""
     log_path = Path(manager.settings.log_dir) / "consumer.jsonl"
     last_offset = 0
     while True:
         state = manager.state()
+        state["market"] = await reference.market_status()
         yield f"event: status\ndata: {json.dumps(state)}\n\n"
 
         if log_path.exists():
@@ -142,9 +175,9 @@ async def _sse_generator(manager: ProcessManager):
 
 
 @router.get("/stream", summary="SSE stream of status and quotes")
-async def stream(manager: ManagerDep) -> StreamingResponse:
+async def stream(manager: ManagerDep, reference: ReferenceDep) -> StreamingResponse:
     return StreamingResponse(
-        _sse_generator(manager),
+        _sse_generator(manager, reference),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

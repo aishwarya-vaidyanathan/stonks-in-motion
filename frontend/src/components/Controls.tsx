@@ -43,18 +43,23 @@ export function Controls({ status, isConnected, onStatusUpdate }: ControlsProps)
     }
   };
 
+  const marketClosed = status?.market?.isOpen === false;
+
   return (
     <div className="hright">
+      {marketClosed && <span className="pill closed">Market Closed</span>}
       <span className="clock mono">{clock}</span>
       <span className={`pill ${isConnected ? '' : 'poll'}`}>
         <span className="dot" />
         {isConnected ? 'SSE' : 'POLL'}
       </span>
       <button className="btn btn-stop" onClick={handleStop} disabled={loading !== null || !pipelineRunning}>
-        {loading === 'stop' ? 'Stopping' : 'Stop'}
+        {loading === 'stop' && <span className="spin" />}
+        Stop
       </button>
       <button className="btn btn-start" onClick={handleStart} disabled={loading !== null || pipelineRunning}>
-        {loading === 'start' ? 'Starting' : 'Start'}
+        {loading === 'start' && <span className="spin" />}
+        Start
       </button>
     </div>
   );

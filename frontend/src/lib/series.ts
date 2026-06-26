@@ -11,6 +11,18 @@ export const fmtUsd = (n: number): string => '$' + fmt(n);
 /** Signed percentage string, e.g. "+1.24%". */
 export const pct = (n: number): string => (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
 
+/** Market cap from millions USD → "$2.94T" / "$812.3B" / "$540M". */
+export function fmtCap(millions: number | null | undefined): string {
+  if (millions == null || !isFinite(millions)) return '—';
+  if (millions >= 1_000_000) return '$' + (millions / 1_000_000).toFixed(2) + 'T';
+  if (millions >= 1_000) return '$' + (millions / 1_000).toFixed(1) + 'B';
+  return '$' + millions.toFixed(0) + 'M';
+}
+
+/** Compact number, e.g. 1234.5 → "1.23k". null → "—". */
+export const fmtNum = (n: number | null | undefined, digits = 2): string =>
+  n == null || !isFinite(n) ? '—' : n.toFixed(digits);
+
 /** Human uptime: 45s / 12m / 1h03m. */
 export function fmtUptime(seconds: number | null | undefined): string {
   if (!seconds || seconds < 0) return '0s';

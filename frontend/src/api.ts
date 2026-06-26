@@ -1,4 +1,13 @@
-import type { HealthResponse, LogsResponse, PipelineStatus, Quote } from './types';
+import type {
+  CompanyProfile,
+  HealthResponse,
+  LogsResponse,
+  NewsItem,
+  PipelineStatus,
+  Quote,
+  Recommendation,
+  SymbolMetrics,
+} from './types';
 
 export const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -34,6 +43,22 @@ export function getLogs(tail = 50): Promise<LogsResponse> {
 
 export function getQuotesHistory(tail = 200): Promise<Quote[]> {
   return request<Quote[]>(`/api/quotes/history?tail=${tail}`);
+}
+
+export function getProfiles(): Promise<Record<string, CompanyProfile>> {
+  return request<Record<string, CompanyProfile>>('/api/profiles');
+}
+
+export function getMetrics(): Promise<Record<string, SymbolMetrics>> {
+  return request<Record<string, SymbolMetrics>>('/api/metrics');
+}
+
+export function getRecommendations(): Promise<Record<string, Recommendation>> {
+  return request<Record<string, Recommendation>>('/api/recommendations');
+}
+
+export function getNews(limit = 30): Promise<NewsItem[]> {
+  return request<NewsItem[]>(`/api/news?limit=${limit}`);
 }
 
 export async function checkHealth(): Promise<boolean> {

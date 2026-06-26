@@ -36,8 +36,37 @@ async def run(settings: Settings) -> None:
         timeout=settings.finnhub_request_timeout_seconds,
         max_retries=settings.finnhub_max_retries,
     ) as client:
+        market_open = True  # assume open until first check
+        last_market_check = 0.0
         while not stop.is_set():
             round_started = time.monotonic()
+
+            # Re-check market status at most once per idle interval. When the
+            # market is closed, skip polling /quote entirely (prices don't move)
+            # and idle until it reopens.
+            if round_started - last_market_check >= settings.finnhub_idle_poll_seconds:
+                try:
+                    status = await client.fetch_market_status(
+                        settings.finnhub_market_exchange
+                    )
+                    is_open = status.get("isOpen")
+                    if is_open is not None and is_open != market_open:
+                        log.info("producer.market_status_changed", is_open=is_open)
+                    market_open = True if is_open is None else bool(is_open)
+                except Exception as exc:
+                    # On any failure, fail open and keep polling.
+                    log.warning("producer.market_status_failed", error=repr(exc))
+                    market_open = True
+                last_market_check = round_started
+
+            if not market_open:
+                log.info("producer.market_closed", idle_seconds=settings.finnhub_idle_poll_seconds)
+                with contextlib.suppress(asyncio.TimeoutError):
+                    await asyncio.wait_for(
+                        stop.wait(), timeout=settings.finnhub_idle_poll_seconds
+                    )
+                continue
+
             for symbol in settings.finnhub_tickers:
                 if stop.is_set():
                     break

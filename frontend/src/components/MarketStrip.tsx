@@ -1,12 +1,14 @@
-import type { Quote } from '../types';
+import type { CompanyProfile, Quote } from '../types';
 import { TICKERS, TICKER_COLORS } from '../types';
 import { fmt, latestBySymbol, pct } from '../lib/series';
+import { SymbolLogo } from './SymbolLogo';
 
 interface MarketStripProps {
   quotes: Quote[];
+  profiles: Record<string, CompanyProfile>;
 }
 
-export function MarketStrip({ quotes }: MarketStripProps) {
+export function MarketStrip({ quotes, profiles }: MarketStripProps) {
   const latest = latestBySymbol(quotes);
   const time = quotes.length
     ? new Date(quotes[quotes.length - 1].receivedAt).toLocaleTimeString('en-US', { hour12: false })
@@ -25,7 +27,7 @@ export function MarketStrip({ quotes }: MarketStripProps) {
           return (
             <div className="strip-item" key={sym}>
               <div className="strip-sym">
-                <i style={{ background: TICKER_COLORS[sym] }} />
+                <SymbolLogo symbol={sym} logo={profiles[sym]?.logo} color={TICKER_COLORS[sym]} size={16} />
                 {sym}
               </div>
               <div className="strip-price" style={q ? undefined : { color: 'var(--muted)' }}>
